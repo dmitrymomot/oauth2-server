@@ -1,0 +1,32 @@
+version: "1"
+packages:
+  - name: "repository"
+    path: "."
+    queries: "./sql/query/"
+    schema: "./sql/migrations/"
+    engine: "postgresql"
+    emit_json_tags: true
+    emit_prepared_queries: true
+    emit_interface: false
+    emit_exact_table_names: false
+    emit_empty_slices: false
+rename:
+  id: "ID"
+  guid: "GUID"
+  url: "URL"
+  limit_val: "Limit"
+  offset_val: "Offset"
+  user_id: "UserID"
+  client_id: "ClientID"
+  project_id: "ProjectID"
+  redirect_uri: "RedirectURI"
+  action_url: "ActionURL"
+  file_id: "FileID"
+  file_url: "FileURL"
+overrides:
+  - go_type: "github.com/google/uuid.NullUUID"
+    db_type: "uuid"
+    nullable: true
+  - go_type: "github.com/lib/pq/hstore.Hstore"
+    db_type: "hstore"
+    nullable: true
