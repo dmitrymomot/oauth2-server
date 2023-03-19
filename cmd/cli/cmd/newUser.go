@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	_ "github.com/joho/godotenv/autoload" // Load .env file automatically
+	_ "github.com/lib/pq"                 // init pg driver
 
 	"github.com/dmitrymomot/go-env"
 	"github.com/dmitrymomot/oauth2-server/repository"
@@ -34,13 +35,15 @@ var newUserCmd = &cobra.Command{
 		email := cmd.Flag("email").Value.String()
 		password := cmd.Flag("password").Value.String()
 
-		if err := createNewUser(connStr, email, password); err != nil {
+		uid, err := createNewUser(connStr, email, password)
+		if err != nil {
 			return fmt.Errorf("failed to create new user: %w", err)
 		}
 
 		color.Green("\nNew user created successfully!")
 		bold := color.New(color.Bold).SprintFunc()
 		fmt.Println("---------------------------------------------------------------------------------")
+		fmt.Println(bold("ID:         "), uid)
 		fmt.Println(bold("Email:      "), email)
 		fmt.Println(bold("Password:   "), password)
 		fmt.Println("---------------------------------------------------------------------------------")
@@ -66,15 +69,15 @@ func init() {
 }
 
 // create a new user
-func createNewUser(dbConnString string, email, password string) error {
+func createNewUser(dbConnString string, email, password string) (string, error) {
 	// Init DB connection
 	db, err := sql.Open("postgres", dbConnString)
 	if err != nil {
-		return fmt.Errorf("failed to open db connection: %w", err)
+		return "", fmt.Errorf("failed to open db connection: %w", err)
 	}
 	defer db.Close()
 	if err := db.Ping(); err != nil {
-		return fmt.Errorf("failed to ping db: %w", err)
+		return "", fmt.Errorf("failed to ping db: %w", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -83,21 +86,22 @@ func createNewUser(dbConnString string, email, password string) error {
 	// Init repository
 	repo, err := repository.Prepare(ctx, db)
 	if err != nil {
-		return fmt.Errorf("failed to prepare repository: %w", err)
+		return "", fmt.Errorf("failed to prepare repository: %w", err)
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return fmt.Errorf("failed to hash client secret: %w", err)
+		return "", fmt.Errorf("failed to hash client secret: %w", err)
 	}
 
 	// Create user
-	if _, err := repo.CreateUser(ctx, repository.CreateUserParams{
+	user, err := repo.CreateUser(ctx, repository.CreateUserParams{
 		Email:    email,
 		Password: passwordHash,
-	}); err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create user: %w", err)
 	}
 
-	return nil
+	return user.ID.String(), nil
 }

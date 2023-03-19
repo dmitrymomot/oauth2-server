@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	_ "github.com/joho/godotenv/autoload" // Load .env file automatically
+	_ "github.com/lib/pq"                 // init pg driver
 
 	"github.com/dmitrymomot/go-env"
 	"github.com/dmitrymomot/oauth2-server/repository"
@@ -105,6 +106,14 @@ func createNewClient(dbConnString string, public bool, domain, userID string) (i
 		Domain:   domain,
 		IsPublic: public,
 		UserID:   uid,
+		AllowedGrants: []string{
+			"authorization_code",
+			"refresh_token",
+			"password",
+			"client_credentials",
+			"__implicit",
+		},
+		Scope: "client:* user:*",
 	}); err != nil {
 		return "", "", fmt.Errorf("failed to create client: %w", err)
 	}
