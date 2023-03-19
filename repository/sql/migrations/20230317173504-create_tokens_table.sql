@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS tokens (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     client_id VARCHAR NOT NULL REFERENCES clients (id) ON DELETE CASCADE,
-    user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    user_id uuid DEFAULT NULL REFERENCES users (id) ON DELETE CASCADE,
     redirect_uri VARCHAR NOT NULL,
     scope VARCHAR NOT NULL DEFAULT '',
     code VARCHAR NOT NULL DEFAULT '',

@@ -9,18 +9,22 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const createClient = `-- name: CreateClient :one
-INSERT INTO clients (id, secret, domain, is_public, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, secret, domain, is_public, user_id, created_at
+INSERT INTO clients (id, secret, domain, is_public, user_id, allowed_grants, scope) 
+VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, secret, domain, is_public, user_id, allowed_grants, scope, created_at
 `
 
 type CreateClientParams struct {
-	ID       string    `json:"id"`
-	Secret   []byte    `json:"secret"`
-	Domain   string    `json:"domain"`
-	IsPublic bool      `json:"is_public"`
-	UserID   uuid.UUID `json:"user_id"`
+	ID            string    `json:"id"`
+	Secret        []byte    `json:"secret"`
+	Domain        string    `json:"domain"`
+	IsPublic      bool      `json:"is_public"`
+	UserID        uuid.UUID `json:"user_id"`
+	AllowedGrants []string  `json:"allowed_grants"`
+	Scope         string    `json:"scope"`
 }
 
 func (q *Queries) CreateClient(ctx context.Context, arg CreateClientParams) (Client, error) {
@@ -30,6 +34,8 @@ func (q *Queries) CreateClient(ctx context.Context, arg CreateClientParams) (Cli
 		arg.Domain,
 		arg.IsPublic,
 		arg.UserID,
+		pq.Array(arg.AllowedGrants),
+		arg.Scope,
 	)
 	var i Client
 	err := row.Scan(
@@ -38,6 +44,8 @@ func (q *Queries) CreateClient(ctx context.Context, arg CreateClientParams) (Cli
 		&i.Domain,
 		&i.IsPublic,
 		&i.UserID,
+		pq.Array(&i.AllowedGrants),
+		&i.Scope,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -53,7 +61,7 @@ func (q *Queries) DeleteClient(ctx context.Context, id string) error {
 }
 
 const getClientByID = `-- name: GetClientByID :one
-SELECT id, secret, domain, is_public, user_id, created_at FROM clients WHERE id = $1
+SELECT id, secret, domain, is_public, user_id, allowed_grants, scope, created_at FROM clients WHERE id = $1
 `
 
 func (q *Queries) GetClientByID(ctx context.Context, id string) (Client, error) {
@@ -65,13 +73,15 @@ func (q *Queries) GetClientByID(ctx context.Context, id string) (Client, error) 
 		&i.Domain,
 		&i.IsPublic,
 		&i.UserID,
+		pq.Array(&i.AllowedGrants),
+		&i.Scope,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getClientByUserID = `-- name: GetClientByUserID :many
-SELECT id, secret, domain, is_public, user_id, created_at FROM clients WHERE user_id = $1 ORDER BY created_at DESC
+SELECT id, secret, domain, is_public, user_id, allowed_grants, scope, created_at FROM clients WHERE user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetClientByUserID(ctx context.Context, userID uuid.UUID) ([]Client, error) {
@@ -89,6 +99,8 @@ func (q *Queries) GetClientByUserID(ctx context.Context, userID uuid.UUID) ([]Cl
 			&i.Domain,
 			&i.IsPublic,
 			&i.UserID,
+			pq.Array(&i.AllowedGrants),
+			&i.Scope,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -105,7 +117,7 @@ func (q *Queries) GetClientByUserID(ctx context.Context, userID uuid.UUID) ([]Cl
 }
 
 const updateClientSecret = `-- name: UpdateClientSecret :one
-UPDATE clients SET secret = $1 WHERE id = $2 RETURNING id, secret, domain, is_public, user_id, created_at
+UPDATE clients SET secret = $1 WHERE id = $2 RETURNING id, secret, domain, is_public, user_id, allowed_grants, scope, created_at
 `
 
 type UpdateClientSecretParams struct {
@@ -122,6 +134,8 @@ func (q *Queries) UpdateClientSecret(ctx context.Context, arg UpdateClientSecret
 		&i.Domain,
 		&i.IsPublic,
 		&i.UserID,
+		pq.Array(&i.AllowedGrants),
+		&i.Scope,
 		&i.CreatedAt,
 	)
 	return i, err

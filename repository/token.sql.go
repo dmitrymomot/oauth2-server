@@ -49,21 +49,21 @@ INSERT INTO tokens (
 `
 
 type CreateTokenParams struct {
-	ClientID            string       `json:"client_id"`
-	UserID              uuid.UUID    `json:"user_id"`
-	RedirectURI         string       `json:"redirect_uri"`
-	Scope               string       `json:"scope"`
-	Code                string       `json:"code"`
-	CodeCreatedAt       sql.NullTime `json:"code_created_at"`
-	CodeExpiresIn       int64        `json:"code_expires_in"`
-	CodeChallenge       string       `json:"code_challenge"`
-	CodeChallengeMethod string       `json:"code_challenge_method"`
-	Access              string       `json:"access"`
-	AccessCreatedAt     sql.NullTime `json:"access_created_at"`
-	AccessExpiresIn     int64        `json:"access_expires_in"`
-	Refresh             string       `json:"refresh"`
-	RefreshCreatedAt    sql.NullTime `json:"refresh_created_at"`
-	RefreshExpiresIn    int64        `json:"refresh_expires_in"`
+	ClientID            string        `json:"client_id"`
+	UserID              uuid.NullUUID `json:"user_id"`
+	RedirectURI         string        `json:"redirect_uri"`
+	Scope               string        `json:"scope"`
+	Code                string        `json:"code"`
+	CodeCreatedAt       sql.NullTime  `json:"code_created_at"`
+	CodeExpiresIn       int64         `json:"code_expires_in"`
+	CodeChallenge       string        `json:"code_challenge"`
+	CodeChallengeMethod string        `json:"code_challenge_method"`
+	Access              string        `json:"access"`
+	AccessCreatedAt     sql.NullTime  `json:"access_created_at"`
+	AccessExpiresIn     int64         `json:"access_expires_in"`
+	Refresh             string        `json:"refresh"`
+	RefreshCreatedAt    sql.NullTime  `json:"refresh_created_at"`
+	RefreshExpiresIn    int64         `json:"refresh_expires_in"`
 }
 
 func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Token, error) {

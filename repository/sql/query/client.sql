@@ -1,5 +1,6 @@
 -- name: CreateClient :one
-INSERT INTO clients (id, secret, domain, is_public, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *;
+INSERT INTO clients (id, secret, domain, is_public, user_id, allowed_grants, scope) 
+VALUES (@id, @secret, @domain, @is_public, @user_id, @allowed_grants, @scope) RETURNING *;
 
 -- name: GetClientByID :one
 SELECT * FROM clients WHERE id = $1;
