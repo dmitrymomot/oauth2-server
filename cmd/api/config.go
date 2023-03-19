@@ -47,10 +47,9 @@ var (
 	workerConcurrency = env.GetInt("WORKER_CONCURRENCY", 10)
 	queueName         = env.GetString("QUEUE_NAME", "default")
 
-	// // Auth
-	// oauthSigningKey = env.MustString("OAUTH_SIGNING_KEY")
+	// Auth
+	oauthSigningKey = env.MustString("OAUTH_SIGNING_KEY")
+	oauth2LoginURI  = env.MustString("OAUTH2_LOGIN_URI")
 	// accessTokenTTL  = env.GetDuration("ACCESS_TOKEN_TTL", time.Minute*5)
 	// refreshTokenTTL = env.GetDuration("REFRESH_TOKEN_TTL", time.Hour)
-	// clientID        = env.MustString("CLIENT_ID")
-	// clientSecret    = env.MustString("CLIENT_SECRET")
 )

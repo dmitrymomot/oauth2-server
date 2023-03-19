@@ -7,9 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/golang-jwt/jwt"
 	_ "github.com/lib/pq" // init pg driver
 
 	"github.com/dmitrymomot/oauth2-server/repository"
+	"github.com/dmitrymomot/oauth2-server/svc/oauth"
+	"github.com/go-oauth2/oauth2/v4/generates"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -68,14 +71,14 @@ func main() {
 		// Run asynq worker
 		eg.Go(runQueueServer(
 			redisConnOpt,
-			logger,
+			logger.WithField("component", "queue-worker"),
 			// TODO: add all queues here
 		))
 
 		// Run asynq scheduler
 		eg.Go(runScheduler(
 			redisConnOpt,
-			logger,
+			logger.WithField("component", "scheduler"),
 			// TODO: add all schedulers here
 		))
 	} else {
@@ -83,10 +86,35 @@ func main() {
 	}
 
 	// Init HTTP router
-	r := initRouter(logger)
+	r := initRouter(logger.WithField("component", "http-router"))
+
+	// Mount oauth2 server
+	{
+		storage := oauth.NewStore(repo)
+		srv := oauth.NewOauth2Server(
+			generates.NewJWTAccessGenerate("", []byte(oauthSigningKey), jwt.SigningMethodHS512),
+			generates.NewAuthorizeGenerate(),
+			storage, storage,
+			oauth.NewHandlerLogger(
+				oauth.NewHandler(
+					repo,
+					oauth.WithClientScope("user:read client:read"),
+					oauth.WithPasswordScope("user:*"),
+					oauth.WithCodeScope("user:* client:*"),
+				),
+				logger.WithField("component", "oauth2"),
+			),
+		)
+
+		r.Mount("/oauth", oauth.MakeHTTPHandler(
+			srv,
+			logger.WithField("component", "oauth2"),
+			oauth2LoginURI,
+		))
+	}
 
 	// Run HTTP server
-	eg.Go(runServer(ctx, httpPort, r, logger))
+	eg.Go(runServer(ctx, httpPort, r, logger.WithField("component", "http-server")))
 
 	// Run all goroutines
 	if err := eg.Wait(); err != nil {

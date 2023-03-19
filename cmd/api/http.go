@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
+	"github.com/dmitrymomot/oauth2-server/internal/httpencoder"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -59,11 +61,8 @@ func initRouter(log *logrus.Entry) *chi.Mux {
 			log.WithError(err).Fatal("failed to parse redis port")
 		}
 
-		redisHost := url.URL{
-			Scheme: connURI.Scheme,
-			Host:   connURI.Hostname(),
-			User:   connURI.User,
-		}
+		redisHost := fmt.Sprintf("%s@%s", connURI.User.String(), connURI.Hostname())
+		redisHost = strings.Trim(redisHost, "@")
 
 		// Rate limit by IP address with Redis backend.
 		r.Use(httprate.Limit(
@@ -71,7 +70,7 @@ func initRouter(log *logrus.Entry) *chi.Mux {
 			httpRateLimitDuration,
 			httprate.WithKeyByRealIP(),
 			httprateredis.WithRedisLimitCounter(&httprateredis.Config{
-				Host: redisHost.String(), Port: uint16(redisPort),
+				Host: redisHost, Port: uint16(redisPort),
 			}),
 		))
 	}
@@ -128,19 +127,21 @@ func healthCheckHandler(w http.ResponseWriter, _ *http.Request) {
 
 // returns 404 HTTP status with payload
 func notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	defaultResponse(w, http.StatusNotFound, map[string]interface{}{
-		"code":       http.StatusNotFound,
-		"error":      fmt.Sprintf("Endpoint %s", http.StatusText(http.StatusNotFound)),
-		"request_id": middleware.GetReqID(r.Context()),
+	defaultResponse(w, http.StatusNotFound, httpencoder.ErrorResponse{
+		Code:      http.StatusNotFound,
+		Error:     http.StatusText(http.StatusNotFound),
+		Message:   fmt.Sprintf("Endpoint %s not found", r.RequestURI),
+		RequestID: middleware.GetReqID(r.Context()),
 	})
 }
 
 // returns 405 HTTP status with payload
 func methodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
-	defaultResponse(w, http.StatusMethodNotAllowed, map[string]interface{}{
-		"code":       http.StatusMethodNotAllowed,
-		"error":      http.StatusText(http.StatusMethodNotAllowed),
-		"request_id": middleware.GetReqID(r.Context()),
+	defaultResponse(w, http.StatusMethodNotAllowed, httpencoder.ErrorResponse{
+		Code:      http.StatusMethodNotAllowed,
+		Error:     http.StatusText(http.StatusMethodNotAllowed),
+		Message:   fmt.Sprintf("HTTP method %s is not allowed for this endpoint", r.Method),
+		RequestID: middleware.GetReqID(r.Context()),
 	})
 }
 
@@ -168,10 +169,11 @@ func testingMdw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if errCodeStr := r.URL.Query().Get("must_err"); len(errCodeStr) == 3 {
 			if errCode, err := strconv.Atoi(errCodeStr); err == nil && errCode >= 400 && errCode < 600 {
-				defaultResponse(w, errCode, map[string]interface{}{
-					"code":       errCode,
-					"error":      http.StatusText(errCode),
-					"request_id": middleware.GetReqID(r.Context()),
+				defaultResponse(w, errCode, httpencoder.ErrorResponse{
+					Code:      http.StatusMethodNotAllowed,
+					Error:     http.StatusText(errCode),
+					Message:   fmt.Sprintf("Test error with code %d: %s", errCode, strings.ToLower(http.StatusText(errCode))),
+					RequestID: middleware.GetReqID(r.Context()),
 				})
 				return
 			}
