@@ -13,15 +13,18 @@ func MatchScopesStrict(requiredScopes string, allowedScopes string) bool {
 	if len(allowedList) == 0 {
 		return false
 	}
+
 	scopeList := strings.Split(requiredScopes, " ")
 	if len(scopeList) == 0 {
 		return false
 	}
+
 	for _, s := range scopeList {
 		if !scopes.ScopeInAllowed(s, allowedList) {
 			return false
 		}
 	}
+
 	return true
 }
 

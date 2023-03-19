@@ -28,21 +28,30 @@ func NewOauth2Server(
 
 	// Create OAuth2 server
 	srv := server.NewDefaultServer(manager)
+	srv.SetTokenType("Bearer")
 	srv.SetAllowGetAccessRequest(true)
-	srv.SetClientInfoHandler(server.ClientFormHandler)
+	srv.SetAllowedResponseType(oauth2.Code, oauth2.Token)
 	srv.SetAllowedGrantType(
 		oauth2.AuthorizationCode,
-		oauth2.PasswordCredentials, // TODO: disable in production
+		oauth2.PasswordCredentials,
 		oauth2.ClientCredentials,
 		oauth2.Refreshing,
 		oauth2.Implicit,
 	)
-	srv.SetAllowedResponseType(oauth2.Code, oauth2.Token)
-	srv.SetInternalErrorHandler(authHandler.InternalErrorHandler)
-	srv.SetResponseErrorHandler(authHandler.ResponseErrorHandler)
-	srv.SetAuthorizeScopeHandler(authHandler.AuthorizeScopeHandler)
-	srv.SetRefreshingScopeHandler(authHandler.RefreshingScopeHandler)
+
+	srv.SetClientInfoHandler(server.ClientFormHandler)
+	srv.SetClientAuthorizedHandler(authHandler.ClientAuthorizedHandler)
+	srv.SetClientScopeHandler(authHandler.ClientScopeHandler)
+
+	srv.SetUserAuthorizationHandler(authHandler.UserAuthorizationHandler)
 	srv.SetPasswordAuthorizationHandler(authHandler.PasswordAuthorizationHandler)
+	srv.SetRefreshingScopeHandler(authHandler.RefreshingScopeHandler)
+
+	srv.SetResponseErrorHandler(authHandler.ResponseErrorHandler)
+	srv.SetInternalErrorHandler(authHandler.InternalErrorHandler)
+
+	srv.SetExtensionFieldsHandler(authHandler.ExtensionFieldsHandler)
+	srv.SetAuthorizeScopeHandler(authHandler.AuthorizeScopeHandler)
 
 	return srv
 }

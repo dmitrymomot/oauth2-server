@@ -63,7 +63,7 @@ func (s *Store) Create(ctx context.Context, info oauth2.TokenInfo) error {
 
 	if _, err := s.repo.CreateToken(ctx, repository.CreateTokenParams{
 		ClientID:    info.GetClientID(),
-		UserID:      uid,
+		UserID:      uuid.NullUUID{UUID: uid, Valid: uid != uuid.Nil},
 		RedirectURI: info.GetRedirectURI(),
 		Scope:       info.GetScope(),
 		Code:        info.GetCode(),

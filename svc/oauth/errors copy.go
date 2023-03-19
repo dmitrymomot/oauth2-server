@@ -4,5 +4,5 @@ import "errors"
 
 // Predefined errors
 var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrInvalidRequest = errors.New("invalid_request")
 )

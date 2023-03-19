@@ -3,7 +3,7 @@ package oauth_test
 import (
 	"testing"
 
-	"github.com/dmitrymomot/oauth2-server/oauth"
+	"github.com/dmitrymomot/oauth2-server/svc/oauth"
 )
 
 func TestMatchScope(t *testing.T) {

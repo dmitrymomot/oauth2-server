@@ -6,6 +6,7 @@ import (
 	"github.com/dmitrymomot/oauth2-server/repository"
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Client represents an OAuth client implements the oauth2.ClientInfo interface.
@@ -59,11 +60,19 @@ func (c *Client) GetUserID() string {
 	return c.UserID.String()
 }
 
+// VerifyPassword verifies the client secret.
+func (c *Client) VerifyPassword(secret string) bool {
+	if bcrypt.CompareHashAndPassword(c.secretHash, []byte(secret)) == nil {
+		return true
+	}
+	return false
+}
+
 // Token represents an OAuth token implements the oauth2.TokenInfo interface.
 type Token struct {
 	ID                  uuid.UUID  `json:"id"`
 	ClientID            string     `json:"client_id"`
-	UserID              uuid.UUID  `json:"user_id,omitempty"`
+	UserID              *uuid.UUID `json:"user_id,omitempty"`
 	RedirectURI         string     `json:"redirect_uri,omitempty"`
 	Scope               string     `json:"scope,omitempty"`
 	Code                string     `json:"code,omitempty"`
@@ -85,7 +94,6 @@ func NewToken(source repository.Token) *Token {
 	t := &Token{
 		ID:                  source.ID,
 		ClientID:            source.ClientID,
-		UserID:              source.UserID,
 		RedirectURI:         source.RedirectURI,
 		Scope:               source.Scope,
 		Code:                source.Code,
@@ -97,6 +105,10 @@ func NewToken(source repository.Token) *Token {
 		Refresh:             source.Refresh,
 		RefreshExpiresIn:    source.RefreshExpiresIn,
 		CreatedAt:           source.CreatedAt,
+	}
+
+	if source.UserID.Valid {
+		t.UserID = &source.UserID.UUID
 	}
 
 	if source.CodeCreatedAt.Valid {
@@ -135,7 +147,7 @@ func (t *Token) SetUserID(id string) {
 	if err != nil {
 		return
 	}
-	t.UserID = uid
+	t.UserID = &uid
 }
 
 func (t *Token) GetRedirectURI() string {
