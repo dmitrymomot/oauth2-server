@@ -9,7 +9,6 @@ import (
 	_ "github.com/joho/godotenv/autoload" // Load .env file automatically
 
 	"github.com/fatih/color"
-	"github.com/google/uuid"
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 )
@@ -64,87 +63,27 @@ func Down() error {
 type Client mg.Namespace
 
 // Create a new client
-func (Client) Create(projectID, redirectURI, isInternal, desc string) error {
+func (Client) Create(userID, domain, isPublic string) error {
 	color.Cyan("Creating a new client...")
 
-	if projectID == "" {
-		projectID = uuid.New().String()
-	}
-
-	if redirectURI == "" {
-		redirectURI = "http://localhost:9094/oauth2"
-	}
-
 	return sh.RunV(
-		"go", "run", "./cmd/client/main.go",
-		"-project-id="+projectID,
-		"-redirect-uri="+redirectURI,
-		"-internal="+isInternal,
-		"-desc="+desc,
+		"go", "run", "./cmd/cli/", "new-client",
+		"--user_id="+userID,
+		"--domain="+domain,
+		"--public="+isPublic,
 	)
 }
 
-// App namespace
-type App mg.Namespace
+// User namespace
+type User mg.Namespace
 
-// Create a new app
-func (App) Create(id, name, isInternal string) error {
-	color.Cyan("Creating a new app...")
+// Create a new user
+func (User) Create(email, password string) error {
+	color.Cyan("Creating a new user...")
 
-	return sh.RunV("go", "run", "./cmd/apps/main.go", "-id="+id, "-name="+name, "-internal="+isInternal)
-}
-
-// Add scope to an app
-func (App) AddScope(appID, scopeID, scopeName string) error {
-	color.Cyan("Adding scope to an app...")
-
-	return sh.RunV("go", "run", "./cmd/scopes/main.go", "-id", scopeID, "-name", scopeName, "-app-id", appID)
-}
-
-// Add test data
-func InitTestData() error {
-	color.Cyan("Adding test data...")
-
-	// Create a new internal client
-	if err := sh.RunV("mage", "client:create", "", "", "1", "Internal client to manage clients"); err != nil {
-		return err
-	}
-
-	// Create a new general client
-	if err := sh.RunV("mage", "client:create", "", "", "0", "Example of general customer client, which can be used to user auth, etc"); err != nil {
-		return err
-	}
-
-	// Create new apps
-	if err := sh.RunV("mage", "app:create", "profile", "Profile", "0"); err != nil {
-		return err
-	}
-	if err := sh.RunV("mage", "app:create", "wallet", "Wallet", "0"); err != nil {
-		return err
-	}
-	if err := sh.RunV("mage", "app:create", "client", "Client Manager", "1"); err != nil {
-		return err
-	}
-
-	// Add scopes to an app
-	if err := sh.RunV("mage", "app:addScope", "profile", "read", "Read profile"); err != nil {
-		return err
-	}
-	if err := sh.RunV("mage", "app:addScope", "profile", "update", "Update profile"); err != nil {
-		return err
-	}
-	if err := sh.RunV("mage", "app:addScope", "wallet", "read", "Get wallet address and balance"); err != nil {
-		return err
-	}
-	if err := sh.RunV("mage", "app:addScope", "wallet", "transaction", "Make transactions"); err != nil {
-		return err
-	}
-	if err := sh.RunV("mage", "app:addScope", "client", "read", "Get client data"); err != nil {
-		return err
-	}
-	if err := sh.RunV("mage", "app:addScope", "client", "write", "Create new clients and update existed"); err != nil {
-		return err
-	}
-
-	return nil
+	return sh.RunV(
+		"go", "run", "./cmd/cli/", "new-user",
+		"--email="+email,
+		"--password="+password,
+	)
 }
