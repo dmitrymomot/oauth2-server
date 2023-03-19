@@ -4,6 +4,8 @@ go 1.19
 
 require (
 	github.com/SonicRoshan/scope v0.0.0-20210525134824-9bbd38664a7f
+	github.com/dmitrymomot/go-env v1.0.2
+	github.com/dmitrymomot/random v1.0.6
 	github.com/fatih/color v1.15.0
 	github.com/go-oauth2/oauth2/v4 v4.5.2
 	github.com/go-session/session v3.1.2+incompatible
@@ -11,15 +13,17 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/joho/godotenv v1.5.1
 	github.com/magefile/mage v1.14.0
+	github.com/spf13/cobra v1.6.1
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 )
 
 require (
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
-	github.com/stretchr/testify v1.8.1 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tidwall/btree v0.0.0-20191029221954-400434d76274 // indirect
 	github.com/tidwall/buntdb v1.1.2 // indirect
 	github.com/tidwall/gjson v1.12.1 // indirect
