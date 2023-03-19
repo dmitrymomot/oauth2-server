@@ -15,5 +15,4 @@
 # vendor/
 Makefile.local
 cmd/tests/
-magefile*.go
 .env
