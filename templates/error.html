@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+
+<head>
+  {{ template "head" join " " .data.Code .data.Title }}
+</head>
+
+<body class="h-full">
+
+  <div class=" flex min-h-full flex-col bg-white pt-16 pb-12">
+    <main class="relative mx-auto flex w-full max-w-lg flex-grow flex-col justify-center px-4 sm:px-6 lg:px-8">
+      {{ template "bgsq" . }}
+      <div class="flex flex-shrink-0 justify-center">
+        <a href='{{ route "home" }}' class="inline-flex">
+          <span class="sr-only">{{.AppName}}</span>
+          <img class="h-12 w-auto" src="{{.AppLogo}}" alt="{{.AppName}}">
+        </a>
+      </div>
+      <div class="py-16">
+        <div class="text-center">
+          <p class="text-base font-semibold text-blue-600">{{ .data.Code }}</p>
+          <h1 class="mt-2 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">{{ .data.Title }}</h1>
+          <p class="mt-2 text-base text-gray-500">{{ .data.Description }}</p>
+          <div class="mt-6">
+            <a href="{{.goBackURL}}" class="text-base font-medium text-blue-600 hover:text-blue-500">
+              Go back
+              <span aria-hidden="true"> &rarr;</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="mx-auto w-full max-w-7xl flex-shrink-0 px-4 sm:px-6 lg:px-8">
+      <nav class="flex justify-center space-x-4">
+        <a href="mailto:{{.SupportEmail}}" class="text-sm font-medium text-gray-500 hover:text-gray-600">Contact
+          Support</a>
+        <span class="inline-block border-l border-gray-300" aria-hidden="true"></span>
+        <a href="#" class="text-sm font-medium text-gray-500 hover:text-gray-600">Status</a>
+        <span class="inline-block border-l border-gray-300" aria-hidden="true"></span>
+        <a href="#" class="text-sm font-medium text-gray-500 hover:text-gray-600">Twitter</a>
+      </nav>
+    </footer>
+  </div>
+
+</body>
+
+</html>

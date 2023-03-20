@@ -27,7 +27,7 @@ func Run() error {
 
 	// run the application
 	color.Cyan("Starting the application...")
-	return sh.RunV("go", "run", "./cmd/api/")
+	return sh.RunV("go", "run", "./cmd/app/")
 }
 
 // MigrateUp runs the database migrations up
