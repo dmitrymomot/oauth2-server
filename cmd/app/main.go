@@ -2,255 +2,136 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"flag"
-	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"net/http/httputil"
-	"net/url"
+	"database/sql"
 	"os"
-	"time"
+	"os/signal"
+	"syscall"
 
-	"github.com/go-oauth2/oauth2/v4"
-	"github.com/go-oauth2/oauth2/v4/errors"
+	_ "github.com/lib/pq" // init pg driver
+
+	"github.com/dmitrymomot/oauth2-server/repository"
+	"github.com/dmitrymomot/oauth2-server/svc/oauth"
 	"github.com/go-oauth2/oauth2/v4/generates"
-	"github.com/go-oauth2/oauth2/v4/manage"
-	"github.com/go-oauth2/oauth2/v4/models"
-	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-oauth2/oauth2/v4/store"
-	"github.com/go-session/session"
 	"github.com/golang-jwt/jwt"
+	"github.com/hibiken/asynq"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
-
-var (
-	dumpvar   bool
-	idvar     string
-	secretvar string
-	domainvar string
-	portvar   int
-)
-
-func init() {
-	flag.BoolVar(&dumpvar, "d", true, "Dump requests and responses")
-	flag.StringVar(&idvar, "i", "222222", "The client id being passed in")
-	flag.StringVar(&secretvar, "s", "22222222", "The client secret being passed in")
-	flag.StringVar(&domainvar, "r", "http://localhost:9094", "The domain of the redirect url")
-	flag.IntVar(&portvar, "p", 9096, "the base port for the server")
-}
 
 func main() {
-	flag.Parse()
-	if dumpvar {
-		log.Println("Dumping requests")
+	// Init logger
+	logrus.SetReportCaller(false)
+	logger := logrus.WithFields(logrus.Fields{
+		"app":       appName,
+		"build_tag": buildTagRuntime,
+	})
+	if appDebug {
+		logger.Logger.SetLevel(logrus.DebugLevel)
+	} else {
+		logger.Logger.SetLevel(logrus.InfoLevel)
 	}
-	manager := manage.NewDefaultManager()
-	manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
 
-	// token store
-	manager.MustTokenStorage(store.NewMemoryTokenStore())
+	defer func() { logger.Info("Server successfully shutdown") }()
 
-	// generate jwt access token
-	manager.MapAccessGenerate(generates.NewJWTAccessGenerate("", []byte("00000000"), jwt.SigningMethodHS512))
-	// manager.MapAccessGenerate(generates.NewAccessGenerate())
+	// Errgroup with context
+	eg, ctx := errgroup.WithContext(newCtx(logger))
 
-	clientStore := store.NewClientStore()
-	clientStore.Set(idvar, &models.Client{
-		ID:     idvar,
-		Secret: secretvar,
-		Domain: domainvar,
-	})
-	manager.MapClientStorage(clientStore)
+	// Init DB connection
+	db, err := sql.Open("postgres", dbConnString)
+	if err != nil {
+		logger.WithError(err).Fatal("Failed to init db connection")
+	}
+	defer db.Close()
 
-	srv := server.NewServer(server.NewConfig(), manager)
+	db.SetMaxOpenConns(dbMaxOpenConns)
+	db.SetMaxIdleConns(dbMaxIdleConns)
 
-	srv.SetPasswordAuthorizationHandler(func(ctx context.Context, clientID, username, password string) (userID string, err error) {
-		if username == "test" && password == "test" {
-			userID = "test"
-		}
-		return
-	})
+	if err := db.Ping(); err != nil {
+		logger.WithError(err).Fatal("Failed to ping db")
+	}
 
-	srv.SetUserAuthorizationHandler(userAuthorizeHandler)
-	srv.SetAllowGetAccessRequest(true)
-	srv.SetClientInfoHandler(server.ClientFormHandler)
-	srv.SetAllowedGrantType(
-		oauth2.AuthorizationCode,
-		oauth2.PasswordCredentials,
-		oauth2.ClientCredentials,
-		oauth2.Refreshing,
-		oauth2.Implicit,
-	)
-	srv.SetAllowedResponseType(oauth2.Code, oauth2.Token)
+	// Init repository
+	repo, err := repository.Prepare(ctx, db)
+	if err != nil {
+		logger.WithError(err).Fatal("Failed to init repository")
+	}
 
-	srv.SetInternalErrorHandler(func(err error) (re *errors.Response) {
-		log.Println("Internal Error:", err.Error())
-		return
-	})
-
-	srv.SetResponseErrorHandler(func(re *errors.Response) {
-		log.Println("Response Error:", re.Error.Error())
-	})
-
-	http.HandleFunc("/login", loginHandler)
-	http.HandleFunc("/auth", authHandler)
-
-	http.HandleFunc("/oauth/authorize", func(w http.ResponseWriter, r *http.Request) {
-		if dumpvar {
-			dumpRequest(os.Stdout, "authorize", r)
-		}
-
-		store, err := session.Start(r.Context(), w, r)
+	if redisConnString != "" {
+		// Redis connect options for asynq client
+		redisConnOpt, err := asynq.ParseRedisURI(redisConnString)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			logger.WithError(err).Fatal("Failed to parse redis connection string")
 		}
 
-		var form url.Values
-		if v, ok := store.Get("ReturnUri"); ok {
-			form = v.(url.Values)
-		}
-		r.Form = form
+		// Init asynq client
+		asynqClient := asynq.NewClient(redisConnOpt)
+		defer asynqClient.Close()
 
-		store.Delete("ReturnUri")
-		store.Save()
+		// Run asynq worker
+		eg.Go(runQueueServer(
+			redisConnOpt,
+			logger.WithField("component", "queue-worker"),
+			// TODO: add all queues here
+		))
 
-		err = srv.HandleAuthorizeRequest(w, r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
-	})
+		// Run asynq scheduler
+		eg.Go(runScheduler(
+			redisConnOpt,
+			logger.WithField("component", "scheduler"),
+			// TODO: add all schedulers here
+		))
+	} else {
+		logger.Warn("Redis connection string is empty, skipping asynq client")
+	}
 
-	http.HandleFunc("/oauth/token", func(w http.ResponseWriter, r *http.Request) {
-		if dumpvar {
-			_ = dumpRequest(os.Stdout, "token", r) // Ignore the error
-		}
+	// Init HTTP router
+	r := initRouter(logger.WithField("component", "http-router"))
 
-		err := srv.HandleTokenRequest(w, r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
+	// Mount oauth2 server
+	{
+		storage := oauth.NewStore(repo)
+		srv := oauth.NewOauth2Server(
+			generates.NewJWTAccessGenerate("", []byte(oauthSigningKey), jwt.SigningMethodHS512),
+			generates.NewAuthorizeGenerate(),
+			storage, storage,
+			oauth.NewHandlerLogger(
+				oauth.NewHandler(
+					repo,
+					oauth.WithClientScope("user:read client:read"),
+					oauth.WithPasswordScope("user:*"),
+					oauth.WithCodeScope("user:* client:*"),
+				),
+				logger.WithField("component", "oauth2"),
+			),
+		)
 
-	http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		if dumpvar {
-			_ = dumpRequest(os.Stdout, "test", r) // Ignore the error
-		}
-		token, err := srv.ValidationBearerToken(r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+		r.Mount("/oauth", oauth.MakeHTTPHandler(
+			srv,
+			logger.WithField("component", "oauth2"),
+			oauth2LoginURI,
+		))
+	}
 
-		data := map[string]interface{}{
-			"expires_in": int64(token.GetAccessCreateAt().Add(token.GetAccessExpiresIn()).Sub(time.Now()).Seconds()),
-			"client_id":  token.GetClientID(),
-			"user_id":    token.GetUserID(),
-		}
-		e := json.NewEncoder(w)
-		e.SetIndent("", "  ")
-		e.Encode(data)
-	})
+	// Run HTTP server
+	eg.Go(runServer(ctx, httpPort, r, logger.WithField("component", "http-server")))
 
-	log.Printf("Server is running at %d port.\n", portvar)
-	log.Printf("Point your OAuth client Auth endpoint to %s:%d%s", "http://localhost", portvar, "/oauth/authorize")
-	log.Printf("Point your OAuth client Token endpoint to %s:%d%s", "http://localhost", portvar, "/oauth/token")
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", portvar), nil))
+	// Run all goroutines
+	if err := eg.Wait(); err != nil {
+		logger.WithError(err).Fatal("Error occurred")
+	}
 }
 
-func dumpRequest(writer io.Writer, header string, r *http.Request) error {
-	data, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		return err
-	}
-	writer.Write([]byte("\n" + header + ": \n"))
-	writer.Write(data)
-	return nil
-}
+// newCtx creates a new context that is cancelled when an interrupt signal is received.
+func newCtx(log *logrus.Entry) context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		defer cancel()
 
-func userAuthorizeHandler(w http.ResponseWriter, r *http.Request) (userID string, err error) {
-	if dumpvar {
-		_ = dumpRequest(os.Stdout, "userAuthorizeHandler", r) // Ignore the error
-	}
-	store, err := session.Start(r.Context(), w, r)
-	if err != nil {
-		return
-	}
+		sCh := make(chan os.Signal, 1)
+		signal.Notify(sCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGPIPE)
+		<-sCh
 
-	uid, ok := store.Get("LoggedInUserID")
-	if !ok {
-		if r.Form == nil {
-			r.ParseForm()
-		}
-
-		store.Set("ReturnUri", r.Form)
-		store.Save()
-
-		w.Header().Set("Location", "/login")
-		w.WriteHeader(http.StatusFound)
-		return
-	}
-
-	userID = uid.(string)
-	store.Delete("LoggedInUserID")
-	store.Save()
-	return
-}
-
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	if dumpvar {
-		_ = dumpRequest(os.Stdout, "login", r) // Ignore the error
-	}
-	store, err := session.Start(r.Context(), w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if r.Method == "POST" {
-		if r.Form == nil {
-			if err := r.ParseForm(); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
-		store.Set("LoggedInUserID", r.Form.Get("username"))
-		store.Save()
-
-		w.Header().Set("Location", "/auth")
-		w.WriteHeader(http.StatusFound)
-		return
-	}
-	outputHTML(w, r, "static/login.html")
-}
-
-func authHandler(w http.ResponseWriter, r *http.Request) {
-	if dumpvar {
-		_ = dumpRequest(os.Stdout, "auth", r) // Ignore the error
-	}
-	store, err := session.Start(nil, w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if _, ok := store.Get("LoggedInUserID"); !ok {
-		w.Header().Set("Location", "/login")
-		w.WriteHeader(http.StatusFound)
-		return
-	}
-
-	outputHTML(w, r, "static/auth.html")
-}
-
-func outputHTML(w http.ResponseWriter, req *http.Request, filename string) {
-	file, err := os.Open(filename)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	defer file.Close()
-	fi, _ := file.Stat()
-	http.ServeContent(w, req, file.Name(), fi.ModTime(), file)
+		log.Debug("Received interrupt signal, shutting down")
+	}()
+	return ctx
 }
