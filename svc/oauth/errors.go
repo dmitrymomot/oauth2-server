@@ -13,6 +13,7 @@ var (
 	ErrInvalidCredentials = errors.New("invalid_credentials")
 	ErrMethodNotAllowed   = errors.New("method_not_allowed")
 	ErrInvalidAccessToken = errors.New("invalid_access_token")
+	ErrUnauthorized       = errors.New("unauthorized")
 )
 
 // Error codes map
@@ -20,6 +21,7 @@ var ErrorCodes = map[error]int{
 	ErrInvalidCredentials: http.StatusUnauthorized,
 	ErrMethodNotAllowed:   http.StatusMethodNotAllowed,
 	ErrInvalidAccessToken: http.StatusUnauthorized,
+	ErrUnauthorized:       http.StatusUnauthorized,
 }
 
 // Error messages
@@ -27,6 +29,7 @@ var ErrorMessages = map[error]string{
 	ErrInvalidCredentials: "Invalid credentials",
 	ErrMethodNotAllowed:   "Method not allowed",
 	ErrInvalidAccessToken: "Invalid access token",
+	ErrUnauthorized:       "Unauthorized",
 }
 
 // NewError creates a new error

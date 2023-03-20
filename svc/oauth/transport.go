@@ -15,13 +15,9 @@ type (
 	oauth2Server interface {
 		HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) error
 		HandleTokenRequest(w http.ResponseWriter, r *http.Request) error
-		GetErrorData(err error) (map[string]interface{}, int, http.Header)
-		BearerAuth(r *http.Request) (string, bool)
 	}
 
 	logger interface {
-		Debugf(format string, args ...interface{})
-		Infof(format string, args ...interface{})
 		Warnf(format string, args ...interface{})
 		Errorf(format string, args ...interface{})
 	}
@@ -74,13 +70,13 @@ func httpAuthorizeHandler(s oauth2Server, errEncoder httptransport.ErrorEncoder,
 			return
 		}
 
-		if _, ok := s.BearerAuth(r); !ok {
-			w.Header().Set("Location", loginURI)
-			w.WriteHeader(302)
-			return
-		}
-
 		if err := s.HandleAuthorizeRequest(w, r); err != nil {
+			if errors.Is(err, ErrUnauthorized) {
+				w.Header().Set("Location", loginURI)
+				w.WriteHeader(302)
+				return
+			}
+
 			errEncoder(r.Context(), err, w)
 			return
 		}

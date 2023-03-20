@@ -2,13 +2,19 @@ package oauth
 
 import (
 	"context"
+	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/dmitrymomot/oauth2-server/repository"
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/errors"
+	"github.com/go-session/session"
 	"golang.org/x/crypto/bcrypt"
+)
+
+const (
+	// logged in user id key in session
+	LoggedInUserIDKey = "logged_in_user_id"
 )
 
 type (
@@ -137,12 +143,22 @@ func (h *handler) RefreshingScopeHandler(tgr *oauth2.TokenGenerateRequest, oldSc
 
 // UserAuthorizationHandler get user id from authorization request
 func (h *handler) UserAuthorizationHandler(w http.ResponseWriter, r *http.Request) (userID string, err error) {
-	token, err := h.ValidationBearerToken(r)
+	store, err := session.Start(r.Context(), w, r)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("session start: %w", err)
 	}
 
-	return token.GetUserID(), nil
+	uid, ok := store.Get(LoggedInUserIDKey)
+	if !ok {
+		return "", ErrUnauthorized
+	}
+
+	result, ok := uid.(string)
+	if !ok {
+		return "", ErrUnauthorized
+	}
+
+	return result, nil
 }
 
 // PasswordAuthorizationHandler get user id from username and password
@@ -199,37 +215,4 @@ func (h *handler) InternalErrorHandler(err error) (re *errors.Response) {
 		Description: "Something went wrong, please try again later or contact support",
 		StatusCode:  http.StatusInternalServerError,
 	}
-}
-
-// BearerAuth parse bearer token
-func (h *handler) BearerAuth(r *http.Request) (string, bool) {
-	auth := r.Header.Get("Authorization")
-	prefix := "Bearer "
-	token := ""
-
-	if auth != "" && strings.HasPrefix(auth, prefix) {
-		token = auth[len(prefix):]
-	} else {
-		token = r.FormValue("access_token")
-	}
-
-	return token, token != ""
-}
-
-// ValidationBearerToken validation the bearer tokens
-// https://tools.ietf.org/html/rfc6750
-func (h *handler) ValidationBearerToken(r *http.Request) (oauth2.TokenInfo, error) {
-	ctx := r.Context()
-
-	accessToken, ok := h.BearerAuth(r)
-	if !ok {
-		return nil, ErrInvalidAccessToken
-	}
-
-	token, err := h.repo.GetTokenByAccess(ctx, accessToken)
-	if err != nil {
-		return nil, ErrInvalidAccessToken
-	}
-
-	return NewToken(token), nil
 }
