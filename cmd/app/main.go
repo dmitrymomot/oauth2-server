@@ -10,7 +10,9 @@ import (
 	_ "github.com/lib/pq" // init pg driver
 
 	"github.com/dmitrymomot/oauth2-server/repository"
+	"github.com/dmitrymomot/oauth2-server/svc/auth"
 	"github.com/dmitrymomot/oauth2-server/svc/oauth"
+	"github.com/dmitrymomot/oauth2-server/svc/verification"
 	"github.com/go-oauth2/oauth2/v4/generates"
 	"github.com/golang-jwt/jwt"
 	"github.com/hibiken/asynq"
@@ -20,17 +22,10 @@ import (
 
 func main() {
 	// Init logger
-	logrus.SetReportCaller(false)
 	logger := logrus.WithFields(logrus.Fields{
 		"app":       appName,
 		"build_tag": buildTagRuntime,
 	})
-	if appDebug {
-		logger.Logger.SetLevel(logrus.DebugLevel)
-	} else {
-		logger.Logger.SetLevel(logrus.InfoLevel)
-	}
-
 	defer func() { logger.Info("Server successfully shutdown") }()
 
 	// Errgroup with context
@@ -111,6 +106,17 @@ func main() {
 			oauth2LoginURI,
 		))
 	}
+
+	// Mount auth service
+	r.Mount("/auth", auth.MakeHTTPHandler(
+		auth.NewService(repo),
+		"/oauth/authorize",
+	))
+
+	// Mount verification service
+	r.Mount("/verification", verification.MakeHTTPHandler(
+		verification.NewService(repo, nil),
+	))
 
 	// Run HTTP server
 	eg.Go(runServer(ctx, httpPort, r, logger.WithField("component", "http-server")))
