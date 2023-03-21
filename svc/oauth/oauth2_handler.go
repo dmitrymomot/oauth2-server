@@ -2,13 +2,12 @@ package oauth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
+	"github.com/dmitrymomot/oauth2-server/internal/session"
 	"github.com/dmitrymomot/oauth2-server/repository"
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/errors"
-	"github.com/go-session/session"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -143,22 +142,12 @@ func (h *handler) RefreshingScopeHandler(tgr *oauth2.TokenGenerateRequest, oldSc
 
 // UserAuthorizationHandler get user id from authorization request
 func (h *handler) UserAuthorizationHandler(w http.ResponseWriter, r *http.Request) (userID string, err error) {
-	store, err := session.Start(r.Context(), w, r)
-	if err != nil {
-		return "", fmt.Errorf("session start: %w", err)
-	}
-
-	uid, ok := store.Get(LoggedInUserIDKey)
+	uid, ok := session.GetLoggedInUserID(r, w)
 	if !ok {
 		return "", ErrUnauthorized
 	}
 
-	result, ok := uid.(string)
-	if !ok {
-		return "", ErrUnauthorized
-	}
-
-	return result, nil
+	return uid, nil
 }
 
 // PasswordAuthorizationHandler get user id from username and password
@@ -205,6 +194,13 @@ func (h *handler) InternalErrorHandler(err error) (re *errors.Response) {
 			Error:       err,
 			ErrorCode:   http.StatusUnauthorized,
 			Description: "Invalid credentials",
+			StatusCode:  http.StatusUnauthorized,
+		}
+	case ErrUnauthorized:
+		return &errors.Response{
+			Error:       err,
+			ErrorCode:   http.StatusUnauthorized,
+			Description: "User is not logged in",
 			StatusCode:  http.StatusUnauthorized,
 		}
 	}

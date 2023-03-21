@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/dmitrymomot/oauth2-server/internal/httpencoder"
+	"github.com/dmitrymomot/oauth2-server/internal/session"
 	"github.com/dmitrymomot/oauth2-server/internal/validator"
 	"github.com/go-chi/chi/v5"
 	httptransport "github.com/go-kit/kit/transport/http"
@@ -70,13 +71,18 @@ func httpAuthorizeHandler(s oauth2Server, errEncoder httptransport.ErrorEncoder,
 			return
 		}
 
-		if err := s.HandleAuthorizeRequest(w, r); err != nil {
-			if errors.Is(err, ErrUnauthorized) {
-				w.Header().Set("Location", loginURI)
-				w.WriteHeader(302)
-				return
-			}
+		if !session.IsLoggedIn(r, w) {
+			session.StoreRedirectData(r, w)
+			session.StoreReturnURI(r, w, r.URL.String())
 
+			w.Header().Set("Location", loginURI)
+			w.WriteHeader(302)
+			return
+		} else {
+			r.Form = session.GetRedirectData(r, w)
+		}
+
+		if err := s.HandleAuthorizeRequest(w, r); err != nil {
 			errEncoder(r.Context(), err, w)
 			return
 		}
