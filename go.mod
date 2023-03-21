@@ -3,17 +3,18 @@ module github.com/dmitrymomot/oauth2-server
 go 1.19
 
 require (
-	filippo.io/edwards25519 v1.0.0
 	github.com/SonicRoshan/scope v0.0.0-20210525134824-9bbd38664a7f
 	github.com/dmitrymomot/go-env v1.0.2
 	github.com/dmitrymomot/random v1.0.6
 	github.com/fatih/color v1.15.0
+	github.com/foolin/goview v0.3.0
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/httprate v0.7.1
 	github.com/go-chi/httprate-redis v0.1.0
 	github.com/go-kit/kit v0.12.0
 	github.com/go-oauth2/oauth2/v4 v4.5.2
+	github.com/go-playground/form/v4 v4.2.0
 	github.com/go-session/session v3.1.2+incompatible
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-querystring v1.1.0
@@ -26,9 +27,7 @@ require (
 	github.com/lib/pq v1.10.7
 	github.com/magefile/mage v1.14.0
 	github.com/mcnijman/go-emailaddress v1.1.0
-	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/portto/solana-go-sdk v1.23.0
 	github.com/rubenv/sql-migrate v1.4.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
