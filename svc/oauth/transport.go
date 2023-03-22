@@ -3,8 +3,10 @@ package oauth
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/dmitrymomot/oauth2-server/internal/httpencoder"
 	"github.com/dmitrymomot/oauth2-server/internal/session"
@@ -42,6 +44,7 @@ func MakeHTTPHandler(srv oauth2Server, ts tokenStoreManager, log logger, loginUR
 	r.Post("/token", httpTokenHandler(srv, errEncoder))
 	r.HandleFunc("/authorize", httpAuthorizeHandler(srv, errEncoder, loginURI))
 	r.Post("/revoke", httpRevokeTokenHandler(ts, errEncoder))
+	r.Post("/introspect", httpIntrospectTokenHandler(ts, errEncoder))
 
 	return r
 }
@@ -131,5 +134,94 @@ func httpRevokeTokenHandler(ts tokenStoreManager, errEncoder httptransport.Error
 		}
 
 		w.WriteHeader(http.StatusOK)
+	}
+}
+
+type (
+	IntrospectResponse struct {
+		Active    bool   `json:"active"`
+		Scope     string `json:"scope,omitempty"`
+		ClientID  string `json:"client_id,omitempty"`
+		UserID    string `json:"user_id,omitempty"`
+		TokenType string `json:"token_type,omitempty"`
+		ExpiresAt int64  `json:"exp,omitempty"`
+		IssuedAt  int64  `json:"iat,omitempty"`
+		NotBefore int64  `json:"nbf,omitempty"`
+		Subject   string `json:"sub,omitempty"`
+		Audience  string `json:"aud,omitempty"`
+		Issuer    string `json:"iss,omitempty"`
+		TokenID   string `json:"jti,omitempty"`
+	}
+)
+
+// httpIntrospectTokenHandler returns an http.HandlerFunc that makes a set of endpoints
+// available on predefined paths.
+func httpIntrospectTokenHandler(ts tokenStoreManager, errEncoder httptransport.ErrorEncoder) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			errEncoder(r.Context(), err, w)
+			return
+		}
+
+		token := r.PostForm.Get("token")
+		tokenType := r.PostForm.Get("token_type_hint")
+
+		var (
+			ti     oauth2.TokenInfo
+			err    error
+			active bool
+			expAt  int64
+			iat    int64
+		)
+
+		switch tokenType {
+		case "access_token":
+			ti, err = ts.LoadAccessToken(r.Context(), token)
+			active = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).After(time.Now())
+			expAt = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).Unix()
+			iat = ti.GetAccessCreateAt().Unix()
+		case "refresh_token":
+			ti, err = ts.LoadRefreshToken(r.Context(), token)
+			active = ti.GetRefreshCreateAt().Add(ti.GetRefreshExpiresIn()).After(time.Now())
+			expAt = ti.GetRefreshCreateAt().Add(ti.GetRefreshExpiresIn()).Unix()
+			iat = ti.GetRefreshCreateAt().Unix()
+		default:
+			ti, err = ts.LoadAccessToken(r.Context(), token)
+			if err != nil {
+				ti, err = ts.LoadRefreshToken(r.Context(), token)
+				if err == nil {
+					active = ti.GetRefreshCreateAt().Add(ti.GetRefreshExpiresIn()).After(time.Now())
+					expAt = ti.GetRefreshCreateAt().Add(ti.GetRefreshExpiresIn()).Unix()
+					iat = ti.GetRefreshCreateAt().Unix()
+					tokenType = "refresh_token"
+				}
+			} else {
+				active = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).After(time.Now())
+				expAt = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).Unix()
+				iat = ti.GetAccessCreateAt().Unix()
+				tokenType = "access_token"
+			}
+		}
+
+		if err != nil {
+			errEncoder(r.Context(), err, w)
+			return
+		}
+
+		if err := json.NewEncoder(w).Encode(IntrospectResponse{
+			Active:    active,
+			Scope:     ti.GetScope(),
+			ClientID:  ti.GetClientID(),
+			UserID:    ti.GetUserID(),
+			TokenType: tokenType,
+			ExpiresAt: expAt,
+			IssuedAt:  iat,
+			NotBefore: iat,
+			Subject:   ti.GetUserID(),
+			Audience:  ti.GetClientID(),
+		}); err != nil {
+			errEncoder(r.Context(), err, w)
+			return
+		}
 	}
 }
