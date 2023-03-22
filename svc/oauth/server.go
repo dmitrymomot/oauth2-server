@@ -13,7 +13,7 @@ func NewOauth2Server(
 	tokenStorage oauth2.TokenStore,
 	clientStorage oauth2.ClientStore,
 	authHandler Handler,
-) *server.Server {
+) (*server.Server, *manage.Manager) {
 	manager := manage.NewDefaultManager()
 
 	manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
@@ -53,5 +53,5 @@ func NewOauth2Server(
 	srv.SetExtensionFieldsHandler(authHandler.ExtensionFieldsHandler)
 	srv.SetAuthorizeScopeHandler(authHandler.AuthorizeScopeHandler)
 
-	return srv
+	return srv, manager
 }

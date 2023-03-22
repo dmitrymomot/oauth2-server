@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"github.com/dmitrymomot/oauth2-server/internal/validator"
 	"github.com/go-chi/chi/v5"
 	httptransport "github.com/go-kit/kit/transport/http"
+	"github.com/go-oauth2/oauth2/v4"
 )
 
 type (
@@ -22,16 +24,24 @@ type (
 		Warnf(format string, args ...interface{})
 		Errorf(format string, args ...interface{})
 	}
+
+	tokenStoreManager interface {
+		RemoveAccessToken(ctx context.Context, access string) error
+		RemoveRefreshToken(ctx context.Context, refresh string) error
+		LoadAccessToken(ctx context.Context, access string) (oauth2.TokenInfo, error)
+		LoadRefreshToken(ctx context.Context, refresh string) (oauth2.TokenInfo, error)
+	}
 )
 
 // MakeHTTPHandler returns a handler that makes a set of endpoints available on
 // predefined paths.
-func MakeHTTPHandler(srv oauth2Server, log logger, loginURI string) http.Handler {
+func MakeHTTPHandler(srv oauth2Server, ts tokenStoreManager, log logger, loginURI string) http.Handler {
 	r := chi.NewRouter()
 	errEncoder := httpencoder.EncodeError(log, codeAndMessageFrom)
 
 	r.Post("/token", httpTokenHandler(srv, errEncoder))
 	r.HandleFunc("/authorize", httpAuthorizeHandler(srv, errEncoder, loginURI))
+	r.Post("/revoke", httpRevokeTokenHandler(ts, errEncoder))
 
 	return r
 }
@@ -85,5 +95,41 @@ func httpAuthorizeHandler(s oauth2Server, errEncoder httptransport.ErrorEncoder,
 			errEncoder(r.Context(), err, w)
 			return
 		}
+	}
+}
+
+// httpRevokeTokenHandler returns an http.HandlerFunc that makes a set of endpoints
+// available on predefined paths.
+func httpRevokeTokenHandler(ts tokenStoreManager, errEncoder httptransport.ErrorEncoder) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			errEncoder(r.Context(), err, w)
+			return
+		}
+
+		token := r.PostForm.Get("token")
+		tokenType := r.PostForm.Get("token_type_hint")
+
+		switch tokenType {
+		case "access_token":
+			if err := ts.RemoveAccessToken(r.Context(), token); err != nil {
+				errEncoder(r.Context(), err, w)
+				return
+			}
+		case "refresh_token":
+			if err := ts.RemoveRefreshToken(r.Context(), token); err != nil {
+				errEncoder(r.Context(), err, w)
+				return
+			}
+		default:
+			if err := ts.RemoveAccessToken(r.Context(), token); err != nil {
+				if err := ts.RemoveRefreshToken(r.Context(), token); err != nil {
+					errEncoder(r.Context(), err, w)
+					return
+				}
+			}
+		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }

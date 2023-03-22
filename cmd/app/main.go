@@ -126,7 +126,7 @@ func main() {
 	// Mount oauth2 server
 	{
 		storage := oauth.NewStore(repo)
-		srv := oauth.NewOauth2Server(
+		srv, manager := oauth.NewOauth2Server(
 			generates.NewJWTAccessGenerate("", []byte(oauthSigningKey), jwt.SigningMethodHS512),
 			generates.NewAuthorizeGenerate(),
 			storage, storage,
@@ -143,6 +143,7 @@ func main() {
 
 		r.Mount("/oauth", oauth.MakeHTTPHandler(
 			srv,
+			manager,
 			logger.WithField("component", "oauth2"),
 			"/auth/login",
 		))
