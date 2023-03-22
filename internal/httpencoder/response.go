@@ -56,6 +56,9 @@ func EncodeResponse(_ context.Context, w http.ResponseWriter, response interface
 		return json.NewEncoder(w).Encode(response)
 	case bool:
 		return json.NewEncoder(w).Encode(BoolResult(r))
+	case ErrorResponse:
+		w.WriteHeader(r.Code)
+		return json.NewEncoder(w).Encode(response)
 	}
 
 	return json.NewEncoder(w).Encode(Response{Data: response})
