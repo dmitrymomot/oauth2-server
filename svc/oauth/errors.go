@@ -5,11 +5,13 @@ import (
 	"net/http"
 
 	"github.com/dmitrymomot/oauth2-server/internal/httpencoder"
+	"github.com/dmitrymomot/oauth2-server/internal/utils"
 	oauthErrors "github.com/go-oauth2/oauth2/v4/errors"
 )
 
 // Predefined errors
 var (
+	ErrInvalidRequest     = errors.New("invalid_request")
 	ErrInvalidCredentials = errors.New("invalid_credentials")
 	ErrMethodNotAllowed   = errors.New("method_not_allowed")
 	ErrInvalidAccessToken = errors.New("invalid_access_token")
@@ -18,18 +20,40 @@ var (
 
 // Error codes map
 var ErrorCodes = map[error]int{
+	ErrInvalidRequest:     http.StatusBadRequest,
 	ErrInvalidCredentials: http.StatusUnauthorized,
 	ErrMethodNotAllowed:   http.StatusMethodNotAllowed,
 	ErrInvalidAccessToken: http.StatusUnauthorized,
 	ErrUnauthorized:       http.StatusUnauthorized,
+
+	oauthErrors.ErrInvalidRedirectURI:   http.StatusBadRequest,
+	oauthErrors.ErrInvalidAuthorizeCode: http.StatusBadRequest,
+	oauthErrors.ErrInvalidAccessToken:   http.StatusBadRequest,
+	oauthErrors.ErrInvalidRefreshToken:  http.StatusBadRequest,
+	oauthErrors.ErrExpiredAccessToken:   http.StatusBadRequest,
+	oauthErrors.ErrExpiredRefreshToken:  http.StatusBadRequest,
+	oauthErrors.ErrMissingCodeVerifier:  http.StatusBadRequest,
+	oauthErrors.ErrMissingCodeChallenge: http.StatusBadRequest,
+	oauthErrors.ErrInvalidCodeChallenge: http.StatusBadRequest,
 }
 
 // Error messages
 var ErrorMessages = map[error]string{
+	ErrInvalidRequest:     "Invalid request",
 	ErrInvalidCredentials: "Invalid credentials",
 	ErrMethodNotAllowed:   "Method not allowed",
 	ErrInvalidAccessToken: "Invalid access token",
 	ErrUnauthorized:       "Unauthorized",
+
+	oauthErrors.ErrInvalidRedirectURI:   "Invalid redirect uri",
+	oauthErrors.ErrInvalidAuthorizeCode: "Invalid authorize code",
+	oauthErrors.ErrInvalidAccessToken:   "Invalid access token",
+	oauthErrors.ErrInvalidRefreshToken:  "Invalid refresh token",
+	oauthErrors.ErrExpiredAccessToken:   "Expired access token",
+	oauthErrors.ErrExpiredRefreshToken:  "Expired refresh token",
+	oauthErrors.ErrMissingCodeVerifier:  "Missing code verifier",
+	oauthErrors.ErrMissingCodeChallenge: "Missing code challenge",
+	oauthErrors.ErrInvalidCodeChallenge: "Invalid code challenge",
 }
 
 // NewError creates a new error
@@ -43,7 +67,7 @@ func NewError(err error) *httpencoder.ErrorResponse {
 
 	return &httpencoder.ErrorResponse{
 		Code:    code,
-		Error:   stdErr.Error(),
+		Error:   utils.ToSnakeCase(stdErr.Error()),
 		Message: msg,
 	}
 }

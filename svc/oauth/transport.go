@@ -2,15 +2,12 @@ package oauth
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
 	"github.com/dmitrymomot/oauth2-server/internal/httpencoder"
 	"github.com/dmitrymomot/oauth2-server/internal/session"
-	"github.com/dmitrymomot/oauth2-server/internal/validator"
 	"github.com/go-chi/chi/v5"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/go-oauth2/oauth2/v4"
@@ -51,16 +48,9 @@ func MakeHTTPHandler(srv oauth2Server, ts tokenStoreManager, log logger, loginUR
 
 // returns http error code by error type
 func codeAndMessageFrom(err error) (int, interface{}) {
-	if errors.Is(err, validator.ErrValidation) {
-		return http.StatusPreconditionFailed, err
-	}
-	if errors.Is(err, sql.ErrNoRows) {
-		return http.StatusNotFound, err
-	}
 	if resp := NewError(err); resp != nil {
 		return resp.Code, resp
 	}
-
 	return httpencoder.CodeAndMessageFrom(err)
 }
 
@@ -177,29 +167,33 @@ func httpIntrospectTokenHandler(ts tokenStoreManager, errEncoder httptransport.E
 		switch tokenType {
 		case "access_token":
 			ti, err = ts.LoadAccessToken(r.Context(), token)
-			active = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).After(time.Now())
-			expAt = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).Unix()
-			iat = ti.GetAccessCreateAt().Unix()
+			if err == nil && ti != nil {
+				active = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).After(time.Now())
+				expAt = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).Unix()
+				iat = ti.GetAccessCreateAt().Unix()
+			}
 		case "refresh_token":
 			ti, err = ts.LoadRefreshToken(r.Context(), token)
-			active = ti.GetRefreshCreateAt().Add(ti.GetRefreshExpiresIn()).After(time.Now())
-			expAt = ti.GetRefreshCreateAt().Add(ti.GetRefreshExpiresIn()).Unix()
-			iat = ti.GetRefreshCreateAt().Unix()
+			if err == nil && ti != nil {
+				active = ti.GetRefreshCreateAt().Add(ti.GetRefreshExpiresIn()).After(time.Now())
+				expAt = ti.GetRefreshCreateAt().Add(ti.GetRefreshExpiresIn()).Unix()
+				iat = ti.GetRefreshCreateAt().Unix()
+			}
 		default:
 			ti, err = ts.LoadAccessToken(r.Context(), token)
-			if err != nil {
+			if err == nil && ti != nil {
+				active = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).After(time.Now())
+				expAt = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).Unix()
+				iat = ti.GetAccessCreateAt().Unix()
+				tokenType = "access_token"
+			} else {
 				ti, err = ts.LoadRefreshToken(r.Context(), token)
-				if err == nil {
+				if err == nil && ti != nil {
 					active = ti.GetRefreshCreateAt().Add(ti.GetRefreshExpiresIn()).After(time.Now())
 					expAt = ti.GetRefreshCreateAt().Add(ti.GetRefreshExpiresIn()).Unix()
 					iat = ti.GetRefreshCreateAt().Unix()
 					tokenType = "refresh_token"
 				}
-			} else {
-				active = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).After(time.Now())
-				expAt = ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).Unix()
-				iat = ti.GetAccessCreateAt().Unix()
-				tokenType = "access_token"
 			}
 		}
 
