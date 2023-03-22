@@ -19,6 +19,7 @@ require (
 	github.com/go-session/session v3.1.2+incompatible
 	github.com/go-session/session/v3 v3.1.5
 	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1
 	github.com/google/go-querystring v1.1.0
 	github.com/google/uuid v1.3.0
 	github.com/gookit/validate v1.4.6

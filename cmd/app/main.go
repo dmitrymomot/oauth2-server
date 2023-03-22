@@ -11,12 +11,14 @@ import (
 
 	"github.com/dmitrymomot/oauth2-server/internal/mdw"
 	postmarkClient "github.com/dmitrymomot/oauth2-server/internal/postmark"
+	"github.com/dmitrymomot/oauth2-server/lib/middleware"
 	"github.com/dmitrymomot/oauth2-server/repository"
+	"github.com/dmitrymomot/oauth2-server/svc/api/user"
 	"github.com/dmitrymomot/oauth2-server/svc/auth"
 	"github.com/dmitrymomot/oauth2-server/svc/mailer"
 	"github.com/dmitrymomot/oauth2-server/svc/oauth"
 	"github.com/go-oauth2/oauth2/v4/generates"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/hibiken/asynq"
 	"github.com/keighl/postmark"
 	_ "github.com/lib/pq" // init pg driver
@@ -155,6 +157,19 @@ func main() {
 		"/oauth/authorize",
 		mdw.NotAuthOnly(authorizedHomeURI),
 	))
+
+	// Mount api services
+	{
+		r.Mount("/api/user", user.MakeHTTPHandler(
+			user.MakeEndpoints(
+				user.NewService(repo, mailEnqueuer, db),
+				middleware.GokitAuthMiddleware(
+					middleware.NewJwtVerifier(oauthSigningKey),
+				),
+			),
+			logger.WithField("component", "api-user"),
+		))
+	}
 
 	// Run HTTP server
 	eg.Go(runServer(ctx, httpPort, r, logger.WithField("component", "http-server")))
