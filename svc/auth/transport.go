@@ -112,7 +112,7 @@ func httpLoginHandler(srv Service, oauth2AuthURI string) http.HandlerFunc {
 // registerRequest collects the request parameters for the Register method.
 type registerRequest struct {
 	Email                string `json:"email" form:"email" validate:"required|email|realEmail" filter:"trim|lower|escapeJs|escapeHtml|sanitizeEmail" label:"Email"`
-	Password             string `json:"password" form:"password" validate:"required|minLen:8|maxLen:100" label:"Password"`
+	Password             string `json:"password" form:"password" validate:"required|minLen:8|maxLen:50" label:"Password"`
 	PasswordConfirmation string `json:"password_confirmation" form:"password_confirmation" validate:"requiredWith:Password|eqField:Password" label:"Password confirmation" message:"Password confirmation must match password"`
 	Terms                bool   `json:"terms" form:"terms" validate:"required|bool" label:"Terms of service"`
 }
