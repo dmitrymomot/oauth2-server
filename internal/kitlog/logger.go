@@ -1,15 +1,21 @@
 package kitlog
 
-import "github.com/sirupsen/logrus"
+type (
+	Logger struct {
+		log logger
+	}
 
-type Logger struct {
-	log *logrus.Entry
+	logger interface {
+		Println(args ...interface{})
+	}
+)
+
+// NewLogger returns a new Logger that wraps the provided logger.
+func NewLogger(l logger) Logger {
+	return Logger{log: l}
 }
 
-func NewLogger(l *logrus.Entry) Logger {
-	return Logger{l}
-}
-
+// Log implements the Log method of the go-kit log.Logger interface.
 func (l Logger) Log(keyvals ...interface{}) error {
 	l.log.Println(keyvals...)
 	return nil
