@@ -2,6 +2,7 @@ package utils
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/labstack/gommon/bytes"
 	"github.com/pkg/errors"
@@ -39,4 +40,29 @@ func UcFirst(s string) string {
 	}
 
 	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+// ToSnakeCase converts string to snake case.
+func ToSnakeCase(s string) string {
+	var snakeCase string
+	var lastChar rune
+	for i, r := range s {
+		if !unicode.IsLetter(r) && !unicode.IsNumber(r) {
+			if lastChar != '_' {
+				snakeCase += "_"
+				lastChar = '_'
+			}
+			continue
+		}
+		if unicode.IsUpper(r) {
+			if i > 0 && lastChar != '_' && !unicode.IsUpper(lastChar) {
+				snakeCase += "_"
+			}
+			snakeCase += string(unicode.ToLower(r))
+		} else {
+			snakeCase += string(r)
+		}
+		lastChar = r
+	}
+	return strings.Trim(snakeCase, "_")
 }

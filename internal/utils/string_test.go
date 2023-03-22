@@ -80,3 +80,64 @@ func TestTrimStringBetween(t *testing.T) {
 		})
 	}
 }
+
+func TestToSnakeCase(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "empty string",
+			args: args{
+				s: "",
+			},
+			want: "",
+		},
+		{
+			name: "one word",
+			args: args{
+				s: "test",
+			},
+			want: "test",
+		},
+		{
+			name: "two words",
+			args: args{
+				s: "testString",
+			},
+			want: "test_string",
+		},
+		{
+			name: "two words with spaces",
+			args: args{
+				s: "test String",
+			},
+			want: "test_string",
+		},
+		{
+			name: "two words with spaces and numbers",
+			args: args{
+				s: "test String 123",
+			},
+			want: "test_string_123",
+		},
+		{
+			name: "two words with spaces and numbers and special chars",
+			args: args{
+				s: "test String 123 !@#$%^&*()",
+			},
+			want: "test_string_123",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := utils.ToSnakeCase(tt.args.s); got != tt.want {
+				t.Errorf("ToSnakeCase() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
