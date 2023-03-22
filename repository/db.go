@@ -24,6 +24,9 @@ func New(db DBTX) *Queries {
 func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	q := Queries{db: db}
 	var err error
+	if q.cleanUpExpiredUserVerificationsStmt, err = db.PrepareContext(ctx, cleanUpExpiredUserVerifications); err != nil {
+		return nil, fmt.Errorf("error preparing query CleanUpExpiredUserVerifications: %w", err)
+	}
 	if q.createClientStmt, err = db.PrepareContext(ctx, createClient); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateClient: %w", err)
 	}
@@ -32,6 +35,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.createUserStmt, err = db.PrepareContext(ctx, createUser); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateUser: %w", err)
+	}
+	if q.createUserVerificationStmt, err = db.PrepareContext(ctx, createUserVerification); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateUserVerification: %w", err)
 	}
 	if q.deleteByAccessStmt, err = db.PrepareContext(ctx, deleteByAccess); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteByAccess: %w", err)
@@ -50,6 +56,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteUserStmt, err = db.PrepareContext(ctx, deleteUser); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteUser: %w", err)
+	}
+	if q.deleteUserVerificationsByEmailStmt, err = db.PrepareContext(ctx, deleteUserVerificationsByEmail); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteUserVerificationsByEmail: %w", err)
+	}
+	if q.deleteUserVerificationsByUserIDStmt, err = db.PrepareContext(ctx, deleteUserVerificationsByUserID); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteUserVerificationsByUserID: %w", err)
 	}
 	if q.getClientByIDStmt, err = db.PrepareContext(ctx, getClientByID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetClientByID: %w", err)
@@ -72,6 +84,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getUserByIDStmt, err = db.PrepareContext(ctx, getUserByID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserByID: %w", err)
 	}
+	if q.getUserVerificationByEmailStmt, err = db.PrepareContext(ctx, getUserVerificationByEmail); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserVerificationByEmail: %w", err)
+	}
+	if q.getUserVerificationByUserIDStmt, err = db.PrepareContext(ctx, getUserVerificationByUserID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserVerificationByUserID: %w", err)
+	}
+	if q.getVerificationByUserIDAndEmailStmt, err = db.PrepareContext(ctx, getVerificationByUserIDAndEmail); err != nil {
+		return nil, fmt.Errorf("error preparing query GetVerificationByUserIDAndEmail: %w", err)
+	}
 	if q.updateClientSecretStmt, err = db.PrepareContext(ctx, updateClientSecret); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateClientSecret: %w", err)
 	}
@@ -89,6 +110,11 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 
 func (q *Queries) Close() error {
 	var err error
+	if q.cleanUpExpiredUserVerificationsStmt != nil {
+		if cerr := q.cleanUpExpiredUserVerificationsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing cleanUpExpiredUserVerificationsStmt: %w", cerr)
+		}
+	}
 	if q.createClientStmt != nil {
 		if cerr := q.createClientStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createClientStmt: %w", cerr)
@@ -102,6 +128,11 @@ func (q *Queries) Close() error {
 	if q.createUserStmt != nil {
 		if cerr := q.createUserStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createUserStmt: %w", cerr)
+		}
+	}
+	if q.createUserVerificationStmt != nil {
+		if cerr := q.createUserVerificationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createUserVerificationStmt: %w", cerr)
 		}
 	}
 	if q.deleteByAccessStmt != nil {
@@ -132,6 +163,16 @@ func (q *Queries) Close() error {
 	if q.deleteUserStmt != nil {
 		if cerr := q.deleteUserStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteUserStmt: %w", cerr)
+		}
+	}
+	if q.deleteUserVerificationsByEmailStmt != nil {
+		if cerr := q.deleteUserVerificationsByEmailStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteUserVerificationsByEmailStmt: %w", cerr)
+		}
+	}
+	if q.deleteUserVerificationsByUserIDStmt != nil {
+		if cerr := q.deleteUserVerificationsByUserIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteUserVerificationsByUserIDStmt: %w", cerr)
 		}
 	}
 	if q.getClientByIDStmt != nil {
@@ -167,6 +208,21 @@ func (q *Queries) Close() error {
 	if q.getUserByIDStmt != nil {
 		if cerr := q.getUserByIDStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getUserByIDStmt: %w", cerr)
+		}
+	}
+	if q.getUserVerificationByEmailStmt != nil {
+		if cerr := q.getUserVerificationByEmailStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserVerificationByEmailStmt: %w", cerr)
+		}
+	}
+	if q.getUserVerificationByUserIDStmt != nil {
+		if cerr := q.getUserVerificationByUserIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserVerificationByUserIDStmt: %w", cerr)
+		}
+	}
+	if q.getVerificationByUserIDAndEmailStmt != nil {
+		if cerr := q.getVerificationByUserIDAndEmailStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getVerificationByUserIDAndEmailStmt: %w", cerr)
 		}
 	}
 	if q.updateClientSecretStmt != nil {
@@ -226,53 +282,67 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 }
 
 type Queries struct {
-	db                       DBTX
-	tx                       *sql.Tx
-	createClientStmt         *sql.Stmt
-	createTokenStmt          *sql.Stmt
-	createUserStmt           *sql.Stmt
-	deleteByAccessStmt       *sql.Stmt
-	deleteByCodeStmt         *sql.Stmt
-	deleteByRefreshStmt      *sql.Stmt
-	deleteClientStmt         *sql.Stmt
-	deleteExpiredTokensStmt  *sql.Stmt
-	deleteUserStmt           *sql.Stmt
-	getClientByIDStmt        *sql.Stmt
-	getClientByUserIDStmt    *sql.Stmt
-	getTokenByAccessStmt     *sql.Stmt
-	getTokenByCodeStmt       *sql.Stmt
-	getTokenByRefreshStmt    *sql.Stmt
-	getUserByEmailStmt       *sql.Stmt
-	getUserByIDStmt          *sql.Stmt
-	updateClientSecretStmt   *sql.Stmt
-	updateUserEmailStmt      *sql.Stmt
-	updateUserPasswordStmt   *sql.Stmt
-	updateUserVerifiedAtStmt *sql.Stmt
+	db                                  DBTX
+	tx                                  *sql.Tx
+	cleanUpExpiredUserVerificationsStmt *sql.Stmt
+	createClientStmt                    *sql.Stmt
+	createTokenStmt                     *sql.Stmt
+	createUserStmt                      *sql.Stmt
+	createUserVerificationStmt          *sql.Stmt
+	deleteByAccessStmt                  *sql.Stmt
+	deleteByCodeStmt                    *sql.Stmt
+	deleteByRefreshStmt                 *sql.Stmt
+	deleteClientStmt                    *sql.Stmt
+	deleteExpiredTokensStmt             *sql.Stmt
+	deleteUserStmt                      *sql.Stmt
+	deleteUserVerificationsByEmailStmt  *sql.Stmt
+	deleteUserVerificationsByUserIDStmt *sql.Stmt
+	getClientByIDStmt                   *sql.Stmt
+	getClientByUserIDStmt               *sql.Stmt
+	getTokenByAccessStmt                *sql.Stmt
+	getTokenByCodeStmt                  *sql.Stmt
+	getTokenByRefreshStmt               *sql.Stmt
+	getUserByEmailStmt                  *sql.Stmt
+	getUserByIDStmt                     *sql.Stmt
+	getUserVerificationByEmailStmt      *sql.Stmt
+	getUserVerificationByUserIDStmt     *sql.Stmt
+	getVerificationByUserIDAndEmailStmt *sql.Stmt
+	updateClientSecretStmt              *sql.Stmt
+	updateUserEmailStmt                 *sql.Stmt
+	updateUserPasswordStmt              *sql.Stmt
+	updateUserVerifiedAtStmt            *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db:                       tx,
-		tx:                       tx,
-		createClientStmt:         q.createClientStmt,
-		createTokenStmt:          q.createTokenStmt,
-		createUserStmt:           q.createUserStmt,
-		deleteByAccessStmt:       q.deleteByAccessStmt,
-		deleteByCodeStmt:         q.deleteByCodeStmt,
-		deleteByRefreshStmt:      q.deleteByRefreshStmt,
-		deleteClientStmt:         q.deleteClientStmt,
-		deleteExpiredTokensStmt:  q.deleteExpiredTokensStmt,
-		deleteUserStmt:           q.deleteUserStmt,
-		getClientByIDStmt:        q.getClientByIDStmt,
-		getClientByUserIDStmt:    q.getClientByUserIDStmt,
-		getTokenByAccessStmt:     q.getTokenByAccessStmt,
-		getTokenByCodeStmt:       q.getTokenByCodeStmt,
-		getTokenByRefreshStmt:    q.getTokenByRefreshStmt,
-		getUserByEmailStmt:       q.getUserByEmailStmt,
-		getUserByIDStmt:          q.getUserByIDStmt,
-		updateClientSecretStmt:   q.updateClientSecretStmt,
-		updateUserEmailStmt:      q.updateUserEmailStmt,
-		updateUserPasswordStmt:   q.updateUserPasswordStmt,
-		updateUserVerifiedAtStmt: q.updateUserVerifiedAtStmt,
+		db:                                  tx,
+		tx:                                  tx,
+		cleanUpExpiredUserVerificationsStmt: q.cleanUpExpiredUserVerificationsStmt,
+		createClientStmt:                    q.createClientStmt,
+		createTokenStmt:                     q.createTokenStmt,
+		createUserStmt:                      q.createUserStmt,
+		createUserVerificationStmt:          q.createUserVerificationStmt,
+		deleteByAccessStmt:                  q.deleteByAccessStmt,
+		deleteByCodeStmt:                    q.deleteByCodeStmt,
+		deleteByRefreshStmt:                 q.deleteByRefreshStmt,
+		deleteClientStmt:                    q.deleteClientStmt,
+		deleteExpiredTokensStmt:             q.deleteExpiredTokensStmt,
+		deleteUserStmt:                      q.deleteUserStmt,
+		deleteUserVerificationsByEmailStmt:  q.deleteUserVerificationsByEmailStmt,
+		deleteUserVerificationsByUserIDStmt: q.deleteUserVerificationsByUserIDStmt,
+		getClientByIDStmt:                   q.getClientByIDStmt,
+		getClientByUserIDStmt:               q.getClientByUserIDStmt,
+		getTokenByAccessStmt:                q.getTokenByAccessStmt,
+		getTokenByCodeStmt:                  q.getTokenByCodeStmt,
+		getTokenByRefreshStmt:               q.getTokenByRefreshStmt,
+		getUserByEmailStmt:                  q.getUserByEmailStmt,
+		getUserByIDStmt:                     q.getUserByIDStmt,
+		getUserVerificationByEmailStmt:      q.getUserVerificationByEmailStmt,
+		getUserVerificationByUserIDStmt:     q.getUserVerificationByUserIDStmt,
+		getVerificationByUserIDAndEmailStmt: q.getVerificationByUserIDAndEmailStmt,
+		updateClientSecretStmt:              q.updateClientSecretStmt,
+		updateUserEmailStmt:                 q.updateUserEmailStmt,
+		updateUserPasswordStmt:              q.updateUserPasswordStmt,
+		updateUserVerifiedAtStmt:            q.updateUserVerifiedAtStmt,
 	}
 }

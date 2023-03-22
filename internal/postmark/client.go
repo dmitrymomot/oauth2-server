@@ -26,6 +26,7 @@ type (
 	Config struct {
 		ProductName  string
 		ProductURL   string
+		ProductLogo  string
 		SupportEmail string
 		CompanyName  string
 		FromEmail    string
@@ -57,9 +58,9 @@ func (c *Client) SendVerificationCode(ctx context.Context, uid, email, otp strin
 		return fmt.Errorf("could not parse action url: %w", err)
 	}
 	actionURL.RawQuery = url.Values{
-		"uid":   {uid},
-		"otp":   {otp},
-		"email": {email},
+		"user_id": {uid},
+		"otp":     {otp},
+		"email":   {email},
 	}.Encode()
 
 	return c.send(
@@ -79,9 +80,9 @@ func (c *Client) SendResetPasswordCode(ctx context.Context, uid, email, otp stri
 		return fmt.Errorf("could not parse action url: %w", err)
 	}
 	actionURL.RawQuery = url.Values{
-		"uid":   {uid},
-		"otp":   {otp},
-		"email": {email},
+		"user_id": {uid},
+		"otp":     {otp},
+		"email":   {email},
 	}.Encode()
 
 	return c.send(
@@ -101,9 +102,9 @@ func (c *Client) SendDestroyProfileCode(ctx context.Context, uid, email, otp str
 		return fmt.Errorf("could not parse action url: %w", err)
 	}
 	actionURL.RawQuery = url.Values{
-		"uid":   {uid},
-		"otp":   {otp},
-		"email": {email},
+		"user_id": {uid},
+		"otp":     {otp},
+		"email":   {email},
 	}.Encode()
 
 	return c.send(
@@ -123,6 +124,7 @@ func (c *Client) send(tpl, tag, email string, data map[string]interface{}) error
 	payload := map[string]interface{}{
 		"product_url":   c.config.ProductURL,
 		"product_name":  c.config.ProductName,
+		"product_logo":  c.config.ProductLogo,
 		"company_name":  c.config.CompanyName,
 		"email":         email,
 		"support_email": c.config.SupportEmail,

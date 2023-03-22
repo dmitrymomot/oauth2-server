@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/go-session/session"
+	"github.com/dmitrymomot/oauth2-server/internal/utils"
+	"github.com/go-session/session/v3"
 )
 
 const (
@@ -57,6 +58,9 @@ func GetReturnURI(r *http.Request, w http.ResponseWriter, fallbackURI string) st
 	// Delete the return URI from the session after it has been retrieved.
 	store.Delete(ReturnURIKey)
 	store.Save()
+
+	ru, ok := store.Get(ReturnURIKey)
+	utils.PrettyPrint("GetReturnURI", ru, ok)
 
 	return result
 }
@@ -122,6 +126,9 @@ func StoreLoggedInUserID(r *http.Request, w http.ResponseWriter, userID string) 
 		return fmt.Errorf("session save: %w", err)
 	}
 
+	uid, ok := store.Get(LoggedInUserIDKey)
+	utils.PrettyPrint("StoreLoggedInUserID", uid, ok)
+
 	return nil
 }
 
@@ -133,6 +140,7 @@ func GetLoggedInUserID(r *http.Request, w http.ResponseWriter) (string, bool) {
 	}
 
 	userID, ok := store.Get(LoggedInUserIDKey)
+	utils.PrettyPrint("GetLoggedInUserID", userID, ok)
 	if !ok || userID == nil {
 		return "", false
 	}

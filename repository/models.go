@@ -6,10 +6,56 @@ package repository
 
 import (
 	"database/sql"
+	"database/sql/driver"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type UserVerificationRequestType string
+
+const (
+	UserVerificationRequestTypeEmailChange       UserVerificationRequestType = "email_change"
+	UserVerificationRequestTypeEmailVerification UserVerificationRequestType = "email_verification"
+	UserVerificationRequestTypePasswordReset     UserVerificationRequestType = "password_reset"
+	UserVerificationRequestTypeDeleteAccount     UserVerificationRequestType = "delete_account"
+)
+
+func (e *UserVerificationRequestType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UserVerificationRequestType(s)
+	case string:
+		*e = UserVerificationRequestType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UserVerificationRequestType: %T", src)
+	}
+	return nil
+}
+
+type NullUserVerificationRequestType struct {
+	UserVerificationRequestType UserVerificationRequestType
+	Valid                       bool // Valid is true if UserVerificationRequestType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUserVerificationRequestType) Scan(value interface{}) error {
+	if value == nil {
+		ns.UserVerificationRequestType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UserVerificationRequestType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUserVerificationRequestType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return ns.UserVerificationRequestType, nil
+}
 
 type Client struct {
 	ID            string    `json:"id"`
@@ -49,4 +95,13 @@ type User struct {
 	CreatedAt  time.Time    `json:"created_at"`
 	UpdatedAt  sql.NullTime `json:"updated_at"`
 	VerifiedAt sql.NullTime `json:"verified_at"`
+}
+
+type UserVerification struct {
+	RequestType      UserVerificationRequestType `json:"request_type"`
+	UserID           uuid.UUID                   `json:"user_id"`
+	Email            string                      `json:"email"`
+	VerificationCode []byte                      `json:"verification_code"`
+	ExpiresAt        time.Time                   `json:"expires_at"`
+	CreatedAt        time.Time                   `json:"created_at"`
 }

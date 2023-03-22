@@ -9,20 +9,24 @@ import (
 
 var (
 	// Application
-	appName  = env.GetString("APP_NAME", "api")
-	appDebug = env.GetBool("APP_DEBUG", false)
+	appName    = env.GetString("APP_NAME", "api")
+	appDebug   = env.GetBool("APP_DEBUG", false)
+	appBaseURL = env.GetString("APP_BASE_URL", "http://localhost:8080")
+	appLogoURL = env.GetString("APP_LOGO_URL", "")
 
 	// Product
 	productName    = env.GetString("PRODUCT_NAME", "OAuth2 API") // To show on client side
-	productIconURI = env.GetString("PRODUCT_ICON", "")           // absolute URI to product icon
+	productURL     = env.MustString("PRODUCT_URL")
+	supportEmail   = env.MustString("SUPPORT_EMAIL")
+	companyName    = env.GetString("COMPANY_NAME", productName)
+	productLogoURL = env.GetString("LOGO_URL", "") // absolute URI to product logo
 
 	// HTTP Router
 	httpPort                  = env.GetInt("HTTP_PORT", 8080)
 	httpRequestTimeout        = env.GetDuration("HTTP_REQUEST_TIMEOUT", time.Second*10)
 	httpServerShutdownTimeout = env.GetDuration("HTTP_SERVER_SHUTDOWN_TIMEOUT", time.Second*5)
-	// httpLimitRequestBodySize  = env.GetInt[int64]("HTTP_LIMIT_REQUEST_BODY_SIZE", 1<<20) // 1 MB
-	httpRateLimit         = env.GetInt("HTTP_RATE_LIMIT", 100)
-	httpRateLimitDuration = env.GetDuration("HTTP_RATE_LIMIT_DURATION", time.Minute)
+	httpRateLimit             = env.GetInt("HTTP_RATE_LIMIT", 100)
+	httpRateLimitDuration     = env.GetDuration("HTTP_RATE_LIMIT_DURATION", time.Minute)
 
 	// Cors
 	corsAllowedOrigins     = env.GetStrings("CORS_ALLOWED_ORIGINS", ",", []string{"*"})
@@ -46,10 +50,28 @@ var (
 	// Worker
 	workerConcurrency = env.GetInt("WORKER_CONCURRENCY", 10)
 	queueName         = env.GetString("QUEUE_NAME", "default")
+	queueTaskDeadline = env.GetDuration("QUEUE_TASK_DEADLINE", time.Minute)
+	queueMaxRetry     = env.GetInt("QUEUE_TASK_RETRY_LIMIT", 3)
 
 	// Auth
-	oauthSigningKey = env.MustString("OAUTH_SIGNING_KEY")
-	oauth2LoginURI  = env.MustString("OAUTH2_LOGIN_URI")
-	// accessTokenTTL  = env.GetDuration("ACCESS_TOKEN_TTL", time.Minute*5)
-	// refreshTokenTTL = env.GetDuration("REFRESH_TOKEN_TTL", time.Hour)
+	oauthSigningKey   = env.MustString("OAUTH_SIGNING_KEY")
+	authorizedHomeURI = env.GetString("AUTHORIZED_HOME_URI", "http://localhost:3000")
+
+	// Postmark
+	postmarkServerToken  = env.MustString("POSTMARK_SERVER_TOKEN")
+	postmarkProjectToken = env.MustString("POSTMARK_ACCOUNT_TOKEN")
+
+	// Mailer
+	mailFromEmail = env.MustString("MAILER_FROM_EMAIL")
+	mailFromName  = env.GetString("MAILER_FROM_NAME", productName)
+
+	// Session
+	sessionSigningKey     = env.MustString("SESSION_SIGNING_KEY")
+	sessionCookieName     = env.GetString("SESSION_COOKIE_NAME", "session")
+	sessionCookieLifeTime = env.GetInt("SESSION_COOKIE_LIFE_TIME", 86400)
+	sessionCookieDomain   = env.GetString("SESSION_COOKIE_DOMAIN", "")
+	sessionCookieSecure   = env.GetBool("SESSION_COOKIE_SECURE", false)
+	sessionCookieHttpOnly = env.GetBool("SESSION_COOKIE_HTTP_ONLY", true)
+	sessionCookieSameSite = env.GetString("SESSION_COOKIE_SAME_SITE", "lax")
+	sessionExpiresIn      = env.GetInt("SESSION_EXPIRES_IN", int64(86400))
 )

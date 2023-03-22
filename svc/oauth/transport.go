@@ -75,8 +75,7 @@ func httpAuthorizeHandler(s oauth2Server, errEncoder httptransport.ErrorEncoder,
 			session.StoreRedirectData(r, w)
 			session.StoreReturnURI(r, w, r.URL.String())
 
-			w.Header().Set("Location", loginURI)
-			w.WriteHeader(302)
+			http.Redirect(w, r, loginURI, http.StatusFound)
 			return
 		} else {
 			r.Form = session.GetRedirectData(r, w)

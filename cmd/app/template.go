@@ -35,6 +35,12 @@ func initTemplateEngine() {
 				}
 				return false
 			},
+			"appLogo": func() string {
+				return appLogoURL
+			},
+			"appName": func() string {
+				return productName
+			},
 		},
 		DisableCache: true,
 	})

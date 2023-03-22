@@ -3,19 +3,23 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
-	_ "github.com/lib/pq" // init pg driver
-
+	"github.com/dmitrymomot/oauth2-server/internal/mdw"
+	postmarkClient "github.com/dmitrymomot/oauth2-server/internal/postmark"
 	"github.com/dmitrymomot/oauth2-server/repository"
 	"github.com/dmitrymomot/oauth2-server/svc/auth"
+	"github.com/dmitrymomot/oauth2-server/svc/mailer"
 	"github.com/dmitrymomot/oauth2-server/svc/oauth"
-	"github.com/dmitrymomot/oauth2-server/svc/verification"
 	"github.com/go-oauth2/oauth2/v4/generates"
 	"github.com/golang-jwt/jwt"
 	"github.com/hibiken/asynq"
+	"github.com/keighl/postmark"
+	_ "github.com/lib/pq" // init pg driver
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -51,6 +55,11 @@ func main() {
 		logger.WithError(err).Fatal("Failed to init repository")
 	}
 
+	// init the session manager
+	initSessionManager(logger)
+
+	// mail enqueuer
+	var mailEnqueuer *mailer.Enqueuer
 	if redisConnString != "" {
 		// Redis connect options for asynq client
 		redisConnOpt, err := asynq.ParseRedisURI(redisConnString)
@@ -62,11 +71,43 @@ func main() {
 		asynqClient := asynq.NewClient(redisConnOpt)
 		defer asynqClient.Close()
 
+		// Init mail enqueuer
+		mailEnqueuer = mailer.NewEnqueuer(
+			asynqClient,
+			mailer.WithLogger(logger),
+			mailer.WithQueueName(queueName),
+			mailer.WithMaxRetry(queueMaxRetry),
+			mailer.WithTaskDeadline(queueTaskDeadline),
+		)
+
+		baseURL := strings.TrimSuffix(appBaseURL, "/")
+		if baseURL == "" || baseURL == "/" || !strings.HasPrefix(baseURL, "http") {
+			logger.Fatal("Application base URL is invalid")
+		}
+
+		// Mailer service
+		pc := postmarkClient.New(
+			postmark.NewClient(postmarkServerToken, postmarkProjectToken),
+			postmarkClient.Config{
+				ProductName:  productName,
+				ProductURL:   productURL,
+				ProductLogo:  productLogoURL,
+				SupportEmail: supportEmail,
+				CompanyName:  companyName,
+				FromEmail:    mailFromEmail,
+				FromName:     mailFromName,
+
+				VerificationCodeURL: fmt.Sprintf("%s/%s", baseURL, "/auth/verification/verify"),
+				PasswordResetURL:    fmt.Sprintf("%s/%s", baseURL, "/auth/password/reset"),
+				DestroyUserCodeURL:  fmt.Sprintf("%s/%s", baseURL, "/auth/account/destroy/verify"),
+			},
+		)
+
 		// Run asynq worker
 		eg.Go(runQueueServer(
 			redisConnOpt,
 			logger.WithField("component", "queue-worker"),
-			// TODO: add all queues here
+			mailer.NewWorker(pc),
 		))
 
 		// Run asynq scheduler
@@ -103,19 +144,15 @@ func main() {
 		r.Mount("/oauth", oauth.MakeHTTPHandler(
 			srv,
 			logger.WithField("component", "oauth2"),
-			oauth2LoginURI,
+			"/auth/login",
 		))
 	}
 
 	// Mount auth service
 	r.Mount("/auth", auth.MakeHTTPHandler(
-		auth.NewService(repo),
+		auth.NewService(repo, db, mailEnqueuer),
 		"/oauth/authorize",
-	))
-
-	// Mount verification service
-	r.Mount("/verification", verification.MakeHTTPHandler(
-		verification.NewService(repo, nil),
+		mdw.NotAuthOnly(authorizedHomeURI),
 	))
 
 	// Run HTTP server
