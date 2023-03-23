@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -13,8 +12,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/go-chi/httprate"
-	httprateredis "github.com/go-chi/httprate-redis"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,31 +46,6 @@ func initRouter(log *logrus.Entry) *chi.Mux {
 		// Uses for testing error response with needed status code
 		testingMdw,
 	)
-
-	if redisConnString != "" {
-		connURI, err := url.Parse(redisConnString)
-		if err != nil {
-			log.WithError(err).Fatal("failed to parse redis connection string")
-		}
-
-		redisPort, err := strconv.Atoi(connURI.Port())
-		if err != nil {
-			log.WithError(err).Fatal("failed to parse redis port")
-		}
-
-		redisHost := fmt.Sprintf("%s@%s", connURI.User.String(), connURI.Hostname())
-		redisHost = strings.Trim(redisHost, "@")
-
-		// Rate limit by IP address with Redis backend.
-		r.Use(httprate.Limit(
-			httpRateLimit,
-			httpRateLimitDuration,
-			httprate.WithKeyByRealIP(),
-			httprateredis.WithRedisLimitCounter(&httprateredis.Config{
-				Host: redisHost, Port: uint16(redisPort),
-			}),
-		))
-	}
 
 	r.NotFound(notFoundHandler)
 	r.MethodNotAllowed(methodNotAllowedHandler)
