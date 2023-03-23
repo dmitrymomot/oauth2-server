@@ -13,6 +13,7 @@ var (
 	ErrInvalidPassword  = errors.New("invalid_password")
 	ErrInvalidRequest   = errors.New("invalid_request")
 	ErrInvalidParameter = errors.New("invalid_parameter")
+	ErrForbidden        = errors.New("forbidden")
 )
 
 // Error codes map
@@ -21,6 +22,7 @@ var ErrorCodes = map[error]int{
 	ErrInvalidPassword:  http.StatusPreconditionFailed,
 	ErrInvalidRequest:   http.StatusBadRequest,
 	ErrInvalidParameter: http.StatusBadRequest,
+	ErrForbidden:        http.StatusForbidden,
 }
 
 // Error messages
@@ -29,6 +31,7 @@ var ErrorMessages = map[error]string{
 	ErrInvalidPassword:  "Invalid current password",
 	ErrInvalidRequest:   "Invalid request",
 	ErrInvalidParameter: "Invalid parameter",
+	ErrForbidden:        "Forbidden action",
 }
 
 // NewError creates a new error
@@ -51,7 +54,7 @@ func NewError(err error) *httpencoder.ErrorResponse {
 
 	return &httpencoder.ErrorResponse{
 		Code:    code,
-		Error:   errStr,
+		Err:     errStr,
 		Message: msg,
 	}
 }

@@ -2,15 +2,12 @@ package user
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/dmitrymomot/oauth2-server/internal/httpencoder"
 	"github.com/dmitrymomot/oauth2-server/internal/kitlog"
-	"github.com/dmitrymomot/oauth2-server/internal/validator"
 	"github.com/go-chi/chi/v5"
 	jwtkit "github.com/go-kit/kit/auth/jwt"
 	"github.com/go-kit/kit/transport"
@@ -77,12 +74,6 @@ func MakeHTTPHandler(e Endpoints, log logger) http.Handler {
 
 // returns http error code by error type
 func codeAndMessageFrom(err error) (int, interface{}) {
-	if errors.Is(err, validator.ErrValidation) {
-		return http.StatusPreconditionFailed, err
-	}
-	if errors.Is(err, sql.ErrNoRows) {
-		return http.StatusNotFound, err
-	}
 	if resp := NewError(err); resp != nil {
 		return resp.Code, resp
 	}
