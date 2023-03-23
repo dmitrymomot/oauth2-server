@@ -1,7 +1,7 @@
 package main
 
 import (
-	"text/template"
+	"html/template"
 	"time"
 
 	"github.com/foolin/goview"
