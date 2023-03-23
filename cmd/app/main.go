@@ -20,6 +20,7 @@ import (
 	"github.com/dmitrymomot/oauth2-server/svc/oauth"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-oauth2/oauth2/v4/generates"
+	"github.com/go-redis/redis/v8"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/hibiken/asynq"
 	"github.com/keighl/postmark"
@@ -59,9 +60,6 @@ func main() {
 		logger.WithError(err).Fatal("Failed to init repository")
 	}
 
-	// init the session manager
-	initSessionManager(logger)
-
 	// mail enqueuer
 	var mailEnqueuer *mailer.Enqueuer
 	if redisConnString != "" {
@@ -70,9 +68,17 @@ func main() {
 		if err != nil {
 			logger.WithError(err).Fatal("Failed to parse redis connection string")
 		}
+		redisConn := redisConnOpt.MakeRedisClient()
+		redisClient, ok := redisConn.(*redis.Client)
+		if !ok {
+			logger.Fatal("Failed to cast redis connection to *redis.Client")
+		}
+
+		// init the session manager
+		initSessionManager(redisClient)
 
 		// Init asynq client
-		asynqClient := asynq.NewClient(redisConnOpt)
+		asynqClient := asynq.NewClient(customRedisConnOpt{redis: redisClient})
 		defer asynqClient.Close()
 
 		// Init mail enqueuer
@@ -205,4 +211,12 @@ func newCtx(log *logrus.Entry) context.Context {
 		log.Debug("Received interrupt signal, shutting down")
 	}()
 	return ctx
+}
+
+type customRedisConnOpt struct {
+	redis *redis.Client
+}
+
+func (c customRedisConnOpt) MakeRedisClient() interface{} {
+	return c.redis
 }

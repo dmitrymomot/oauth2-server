@@ -2,12 +2,10 @@ package main
 
 import (
 	"encoding/gob"
-	"fmt"
 	"net/url"
 	"os"
-	"strconv"
-	"strings"
 
+	"github.com/go-redis/redis/v8"
 	sessionRedis "github.com/go-session/redis/v3"
 	gosession "github.com/go-session/session/v3"
 	"github.com/sirupsen/logrus"
@@ -50,35 +48,15 @@ func init() {
 }
 
 // init session manager
-func initSessionManager(log *logrus.Entry) {
-	if redisConnString != "" {
-		connURI, err := url.Parse(redisConnString)
-		if err != nil {
-			log.WithError(err).Fatal("failed to parse redis connection string")
-		}
-
-		redisPort, err := strconv.Atoi(connURI.Port())
-		if err != nil {
-			log.WithError(err).Fatal("failed to parse redis port")
-		}
-
-		redisHost := fmt.Sprintf("%s@%s", connURI.User.String(), connURI.Hostname())
-		redisHost = strings.Trim(redisHost, "@")
-
-		// Init the session manager
-		gosession.InitManager(
-			gosession.SetSign([]byte(sessionSigningKey)),
-			gosession.SetCookieName(sessionCookieName),
-			gosession.SetCookieLifeTime(sessionCookieLifeTime),
-			gosession.SetDomain(sessionCookieDomain),
-			gosession.SetSecure(sessionCookieSecure),
-			gosession.SetExpired(sessionExpiresIn),
-			gosession.SetStore(sessionRedis.NewRedisStore(
-				&sessionRedis.Options{
-					Addr: fmt.Sprintf("%s:%d", redisHost, redisPort),
-					DB:   15,
-				},
-			)),
-		)
-	}
+func initSessionManager(redisClient *redis.Client) {
+	// Init the session manager
+	gosession.InitManager(
+		gosession.SetSign([]byte(sessionSigningKey)),
+		gosession.SetCookieName(sessionCookieName),
+		gosession.SetCookieLifeTime(sessionCookieLifeTime),
+		gosession.SetDomain(sessionCookieDomain),
+		gosession.SetSecure(sessionCookieSecure),
+		gosession.SetExpired(sessionExpiresIn),
+		gosession.SetStore(sessionRedis.NewRedisStoreWithCli(redisClient, sessionPrefix)),
+	)
 }

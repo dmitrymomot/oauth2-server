@@ -45,7 +45,8 @@ var (
 	dbMaxIdleConns = env.GetInt("DATABASE_IDLE_CONNS", 2)
 
 	// Redis
-	redisConnString = env.GetString("REDIS_DATABASE_URL", "")
+	redisConnString = env.GetString("REDIS_URL", "redis://localhost:6379/0")
+	redisPoolSize   = env.GetInt("REDIS_POOL_SIZE", 10)
 
 	// Worker
 	workerConcurrency = env.GetInt("WORKER_CONCURRENCY", 10)
@@ -74,4 +75,5 @@ var (
 	sessionCookieHttpOnly = env.GetBool("SESSION_COOKIE_HTTP_ONLY", true)
 	sessionCookieSameSite = env.GetString("SESSION_COOKIE_SAME_SITE", "lax")
 	sessionExpiresIn      = env.GetInt("SESSION_EXPIRES_IN", int64(86400))
+	sessionPrefix         = env.GetString("SESSION_PREFIX", "session:")
 )

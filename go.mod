@@ -10,11 +10,10 @@ require (
 	github.com/foolin/goview v0.3.0
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
-	github.com/go-chi/httprate v0.7.1
-	github.com/go-chi/httprate-redis v0.1.0
 	github.com/go-kit/kit v0.12.0
 	github.com/go-oauth2/oauth2/v4 v4.5.2
 	github.com/go-playground/form/v4 v4.2.0
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-session/redis/v3 v3.1.0
 	github.com/go-session/session v3.1.2+incompatible
 	github.com/go-session/session/v3 v3.1.5
@@ -48,10 +47,8 @@ require (
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-kit/log v0.2.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
-	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/golang-jwt/jwt/v4 v4.0.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/gomodule/redigo v1.8.9 // indirect
 	github.com/gookit/filter v1.1.4 // indirect
 	github.com/gookit/goutil v0.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
