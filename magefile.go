@@ -59,6 +59,12 @@ func Down() error {
 	return sh.RunV("docker-compose", "down", "--volumes", "--rmi=local")
 }
 
+// Build builds the CLI application
+func Build() error {
+	color.Cyan("Building the CLI application...")
+	return sh.RunV("go", "build", "-o", "./bin/cli", "./cmd/cli/")
+}
+
 // Client namespace
 type Client mg.Namespace
 
