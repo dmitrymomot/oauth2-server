@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/dmitrymomot/oauth2-server/internal/httpencoder"
+	"github.com/dmitrymomot/oauth2-server/internal/session"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -50,7 +51,7 @@ func initRouter(log *logrus.Entry) *chi.Mux {
 	r.NotFound(notFoundHandler)
 	r.MethodNotAllowed(methodNotAllowedHandler)
 
-	r.Get("/", mkRootHandler(buildTagRuntime))
+	r.Get("/", mkRootHandler(buildTagRuntime, authorizedHomeURI))
 	r.Get("/health", healthCheckHandler)
 	r.Mount("/debug", middleware.Profiler())
 
@@ -118,8 +119,17 @@ func methodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // returns current build tag
-func mkRootHandler(buildTag string) func(w http.ResponseWriter, _ *http.Request) {
-	return func(w http.ResponseWriter, _ *http.Request) {
+func mkRootHandler(buildTag, authorizedHomeURI string) func(w http.ResponseWriter, _ *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if authorizedHomeURI != "" && !strings.Contains(r.Header.Get("Accept"), "application/json") {
+			if session.IsLoggedIn(r, w) {
+				http.Redirect(w, r, authorizedHomeURI, http.StatusFound)
+				return
+			}
+			http.Redirect(w, r, "/auth/login", http.StatusFound)
+			return
+		}
+
 		defaultResponse(w, http.StatusOK, map[string]interface{}{
 			"build_tag": buildTag,
 		})
