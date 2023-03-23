@@ -18,6 +18,7 @@ import (
 	"github.com/dmitrymomot/oauth2-server/svc/auth"
 	"github.com/dmitrymomot/oauth2-server/svc/mailer"
 	"github.com/dmitrymomot/oauth2-server/svc/oauth"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-oauth2/oauth2/v4/generates"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/hibiken/asynq"
@@ -77,7 +78,7 @@ func main() {
 		// Init mail enqueuer
 		mailEnqueuer = mailer.NewEnqueuer(
 			asynqClient,
-			mailer.WithLogger(logger),
+			mailer.WithLogger(logger.WithField("component", "mailer")),
 			mailer.WithQueueName(queueName),
 			mailer.WithMaxRetry(queueMaxRetry),
 			mailer.WithTaskDeadline(queueTaskDeadline),
@@ -117,7 +118,7 @@ func main() {
 		eg.Go(runScheduler(
 			redisConnOpt,
 			logger.WithField("component", "scheduler"),
-			// TODO: add all schedulers here
+			auth.NewWorker(repo),
 		))
 	} else {
 		logger.Warn("Redis connection string is empty, skipping asynq client")
@@ -160,8 +161,8 @@ func main() {
 	))
 
 	// Mount api services
-	{
-		r.Mount("/api/user", user.MakeHTTPHandler(
+	r.Route("/api", func(api chi.Router) {
+		api.Mount("/user", user.MakeHTTPHandler(
 			user.MakeEndpoints(
 				user.NewService(repo, mailEnqueuer, db),
 				middleware.GokitAuthMiddleware(
@@ -171,7 +172,7 @@ func main() {
 			logger.WithField("component", "api-user"),
 		))
 
-		r.Mount("/api/client", client.MakeHTTPHandler(
+		api.Mount("/client", client.MakeHTTPHandler(
 			client.MakeEndpoints(
 				client.NewService(repo),
 				middleware.GokitAuthMiddleware(
@@ -180,7 +181,7 @@ func main() {
 			),
 			logger.WithField("component", "api-client"),
 		))
-	}
+	})
 
 	// Run HTTP server
 	eg.Go(runServer(ctx, httpPort, r, logger.WithField("component", "http-server")))
