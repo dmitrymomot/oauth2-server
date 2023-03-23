@@ -1,5 +1,12 @@
 # OAuth2 server
 
+[![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/dmitrymomot/oauth2-server)](https://github.com/dmitrymomot/oauth2-server)
+[![Tests](https://github.com/dmitrymomot/oauth2-server/actions/workflows/tests.yml/badge.svg)](https://github.com/dmitrymomot/oauth2-server/actions/workflows/tests.yml)
+[![CodeQL Analysis](https://github.com/dmitrymomot/oauth2-server/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/dmitrymomot/oauth2-server/actions/workflows/codeql-analysis.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dmitrymomot/oauth2-server)](https://goreportcard.com/report/github.com/dmitrymomot/oauth2-server)
+[![Go Reference](https://pkg.go.dev/badge/github.com/dmitrymomot/oauth2-server.svg)](https://pkg.go.dev/github.com/dmitrymomot/oauth2-server)
+[![License](https://img.shields.io/github/license/dmitrymomot/oauth2-server)](https://github.com/dmitrymomot/oauth2-server/blob/main/LICENSE)
+
 This is a simple OAuth2 server implementation in Go.
 
 ## Features
