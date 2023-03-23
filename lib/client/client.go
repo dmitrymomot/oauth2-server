@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 )
 
 type (
@@ -69,12 +68,4 @@ func (c *client) Introspect(ctx context.Context, token string, tokenType TokenTy
 		return nil, err
 	}
 	return nil, errResp
-}
-
-// VerifyTokenViaIntrospect verifies the token via introspection endpoint.
-func (c *client) VerifyTokenViaIntrospect(token string, tokenType TokenType) (*TokenInfo, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	return c.Introspect(ctx, token, tokenType)
 }

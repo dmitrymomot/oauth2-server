@@ -1,11 +1,38 @@
 package middleware
 
 import (
+	"context"
 	"time"
 
 	"github.com/dmitrymomot/oauth2-server/lib/client"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+type (
+	// IntrospectVerifier is a token verifier that verifies tokens using the
+	// introspection endpoint.
+	IntrospectVerifier struct {
+		client oauthClient
+	}
+
+	oauthClient interface {
+		Introspect(ctx context.Context, token string, tokenType client.TokenType) (*client.TokenInfo, error)
+	}
+)
+
+// NewIntrospectVerifier creates a new IntrospectVerifier.
+func NewIntrospectVerifier(c oauthClient) *IntrospectVerifier {
+	return &IntrospectVerifier{client: c}
+}
+
+// VerifyToken verifies a token.
+// Implements the Verifier interface.
+func (i *IntrospectVerifier) VerifyToken(tokenString string, tokenType client.TokenType) (*client.TokenInfo, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	return i.client.Introspect(ctx, tokenString, tokenType)
+}
 
 // JwtVerifier is a token verifier that verifies JWT tokens.
 type JwtVerifier struct {
@@ -29,12 +56,12 @@ func (j *JwtVerifier) VerifyToken(tokenString string, tokenType client.TokenType
 	}
 
 	if !token.Valid {
-		return nil, jwt.ErrSignatureInvalid
+		return nil, jwt.ErrTokenMalformed
 	}
 
 	claims, ok := token.Claims.(*jwt.MapClaims)
 	if !ok {
-		return nil, jwt.ErrSignatureInvalid
+		return nil, jwt.ErrTokenRequiredClaimMissing
 	}
 
 	return castMapClaimsToTokenInfo(claims), nil
