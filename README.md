@@ -16,5 +16,5 @@ This is a simple OAuth2 server implementation in Go.
 - [x] Implements the [OAuth2 Token Introspection](http://tools.ietf.org/html/rfc7662) extension
 - [x] Signin/Signup pages
 - [x] Reset password flow
-- [ ] API to create and manage clients
-- [ ] API to manage user data
+- [x] API to create and manage clients
+- [x] API to manage user data
