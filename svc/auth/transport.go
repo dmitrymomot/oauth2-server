@@ -100,7 +100,6 @@ func httpLoginHandler(srv Service, oauth2AuthURI string) http.HandlerFunc {
 			}
 
 			returnURI := session.GetReturnURI(r, w, oauth2AuthURI)
-			utils.PrettyPrint("Redirect to", returnURI)
 			http.Redirect(w, r, returnURI, http.StatusFound)
 			return
 		}
