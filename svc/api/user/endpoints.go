@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 
+	"github.com/dmitrymomot/oauth2-server/internal/httpencoder"
 	"github.com/dmitrymomot/oauth2-server/internal/validator"
 	"github.com/dmitrymomot/oauth2-server/lib/middleware"
 	"github.com/go-kit/kit/endpoint"
@@ -100,6 +101,10 @@ func MakeUpdateEmailEndpoint(s Service) endpoint.Endpoint {
 		if !ok {
 			return nil, ErrInvalidRequest
 		}
+		if v := validator.ValidateStruct(&req); len(v) > 0 {
+			return nil, validator.NewValidationError(v)
+		}
+
 		u, err := s.UpdateEmail(ctx, tokenInfo.UserID, req.Email)
 		if err != nil {
 			return nil, err
@@ -126,7 +131,7 @@ func MakeUpdatePasswordEndpoint(s Service) endpoint.Endpoint {
 		if !ok {
 			return nil, ErrInvalidRequest
 		}
-		if v := validator.ValidateStruct(req); len(v) > 0 {
+		if v := validator.ValidateStruct(&req); len(v) > 0 {
 			return nil, validator.NewValidationError(v)
 		}
 
@@ -134,7 +139,7 @@ func MakeUpdatePasswordEndpoint(s Service) endpoint.Endpoint {
 			return nil, err
 		}
 
-		return true, nil
+		return httpencoder.BoolResult(true, "Password has been changed."), nil
 	}
 }
 
@@ -149,6 +154,7 @@ func MakeDeleteEndpoint(s Service) endpoint.Endpoint {
 		if err := s.Delete(ctx, tokenInfo.UserID); err != nil {
 			return nil, err
 		}
-		return true, nil
+
+		return httpencoder.BoolResult(true, "We have sent you an email to confirm the deletion of your account."), nil
 	}
 }

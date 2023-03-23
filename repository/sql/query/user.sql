@@ -8,7 +8,7 @@ SELECT * FROM users WHERE email = $1;
 SELECT * FROM users WHERE id = $1;
 
 -- name: UpdateUserEmail :one
-UPDATE users SET email = $1 WHERE id = $2 RETURNING *;
+UPDATE users SET email = $1, verified_at = NULL WHERE id = $2 RETURNING *;
 
 -- name: UpdateUserPassword :one
 UPDATE users SET password = $1 WHERE id = $2 RETURNING *;

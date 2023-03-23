@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 
+	"github.com/dmitrymomot/oauth2-server/internal/validator"
 	"github.com/dmitrymomot/oauth2-server/lib/middleware"
 	"github.com/go-kit/kit/endpoint"
 )
@@ -61,6 +62,9 @@ func MakeCreateEndpoint(s Service) endpoint.Endpoint {
 		req, ok := request.(CreateRequest)
 		if !ok {
 			return nil, ErrInvalidRequest
+		}
+		if v := validator.ValidateStruct(&req); len(v) > 0 {
+			return nil, validator.NewValidationError(v)
 		}
 
 		client, err := s.Create(ctx, tokenInfo.UserID, req.Domain, req.Public)

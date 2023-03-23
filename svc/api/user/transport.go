@@ -34,7 +34,7 @@ func MakeHTTPHandler(e Endpoints, log logger) http.Handler {
 
 	r.Route("/profile", func(r chi.Router) {
 		r.Get("/", httptransport.NewServer(
-			e.GetByID,
+			e.GetProfile,
 			decodeGetProfileRequest,
 			httpencoder.EncodeResponse,
 			options...,

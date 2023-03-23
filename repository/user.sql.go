@@ -80,7 +80,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 }
 
 const updateUserEmail = `-- name: UpdateUserEmail :one
-UPDATE users SET email = $1 WHERE id = $2 RETURNING id, email, password, created_at, updated_at, verified_at
+UPDATE users SET email = $1, verified_at = NULL WHERE id = $2 RETURNING id, email, password, created_at, updated_at, verified_at
 `
 
 type UpdateUserEmailParams struct {

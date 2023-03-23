@@ -27,7 +27,8 @@ type (
 
 	// BoolResultResponse struct
 	BoolResultResponse struct {
-		Result bool `json:"result"`
+		Result  bool   `json:"result"`
+		Message string `json:"message,omitempty"`
 	}
 
 	ListMeta struct {
@@ -55,7 +56,7 @@ func EncodeResponse(_ context.Context, w http.ResponseWriter, response interface
 	case Response, BoolResultResponse, ListResponse:
 		return json.NewEncoder(w).Encode(response)
 	case bool:
-		return json.NewEncoder(w).Encode(BoolResult(r))
+		return json.NewEncoder(w).Encode(BoolResult(r, ""))
 	case ErrorResponse:
 		w.WriteHeader(r.Code)
 		return json.NewEncoder(w).Encode(response)
@@ -80,13 +81,13 @@ func EncodeResponseAsIs(_ context.Context, w http.ResponseWriter, response inter
 	case Response, BoolResultResponse, ListResponse:
 		return json.NewEncoder(w).Encode(response)
 	case bool:
-		return json.NewEncoder(w).Encode(BoolResult(r))
+		return json.NewEncoder(w).Encode(BoolResult(r, ""))
 	}
 
 	return json.NewEncoder(w).Encode(response)
 }
 
 // BoolResult response helper
-func BoolResult(result bool) BoolResultResponse {
-	return BoolResultResponse{Result: result}
+func BoolResult(result bool, msg string) BoolResultResponse {
+	return BoolResultResponse{Result: result, Message: msg}
 }
