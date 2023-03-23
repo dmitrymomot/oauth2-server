@@ -13,6 +13,7 @@ import (
 	postmarkClient "github.com/dmitrymomot/oauth2-server/internal/postmark"
 	"github.com/dmitrymomot/oauth2-server/lib/middleware"
 	"github.com/dmitrymomot/oauth2-server/repository"
+	"github.com/dmitrymomot/oauth2-server/svc/api/client"
 	"github.com/dmitrymomot/oauth2-server/svc/api/user"
 	"github.com/dmitrymomot/oauth2-server/svc/auth"
 	"github.com/dmitrymomot/oauth2-server/svc/mailer"
@@ -168,6 +169,16 @@ func main() {
 				),
 			),
 			logger.WithField("component", "api-user"),
+		))
+
+		r.Mount("/api/client", client.MakeHTTPHandler(
+			client.MakeEndpoints(
+				client.NewService(repo),
+				middleware.GokitAuthMiddleware(
+					middleware.NewJwtVerifier(oauthSigningKey),
+				),
+			),
+			logger.WithField("component", "api-client"),
 		))
 	}
 

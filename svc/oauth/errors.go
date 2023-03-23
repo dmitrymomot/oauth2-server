@@ -67,7 +67,7 @@ func NewError(err error) *httpencoder.ErrorResponse {
 
 	return &httpencoder.ErrorResponse{
 		Code:    code,
-		Error:   utils.ToSnakeCase(stdErr.Error()),
+		Err:     utils.ToSnakeCase(stdErr.Error()),
 		Message: msg,
 	}
 }

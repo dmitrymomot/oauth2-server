@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"context"
+	"net/http"
 
+	"github.com/dmitrymomot/oauth2-server/internal/httpencoder"
 	"github.com/dmitrymomot/oauth2-server/lib/client"
 	"github.com/go-kit/kit/auth/jwt"
 	"github.com/go-kit/kit/endpoint"
@@ -15,12 +17,12 @@ func GokitAuthMiddleware(verifier TokenVerifier) endpoint.Middleware {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 			token, ok := ctx.Value(jwt.JWTContextKey).(string)
 			if token == "" || !ok {
-				return nil, errors.ErrInvalidAccessToken
+				return nil, httpencoder.NewError(http.StatusUnauthorized, errors.ErrInvalidAccessToken, "", nil)
 			}
 
 			info, err := verifier.VerifyToken(token, client.TokenTypeAccessToken)
 			if err != nil || info == nil || !info.Active {
-				return nil, errors.ErrInvalidAccessToken
+				return nil, httpencoder.NewError(http.StatusUnauthorized, errors.ErrInvalidAccessToken, "", nil)
 			}
 
 			return next(SetTokenInfoToContext(ctx, info), request)

@@ -17,7 +17,7 @@ func AuthMiddleware(verifier TokenVerifier) func(next http.Handler) http.Handler
 			if token == "" {
 				httpencoder.EncodeResponse(r.Context(), w, httpencoder.ErrorResponse{
 					Code:      http.StatusUnauthorized,
-					Error:     "unauthorized",
+					Err:       "unauthorized",
 					Message:   "Missed or invalid access token",
 					RequestID: middleware.GetReqID(r.Context()),
 				})
@@ -28,7 +28,7 @@ func AuthMiddleware(verifier TokenVerifier) func(next http.Handler) http.Handler
 			if err != nil || info == nil || !info.Active {
 				httpencoder.EncodeResponse(r.Context(), w, httpencoder.ErrorResponse{
 					Code:      http.StatusUnauthorized,
-					Error:     "unauthorized",
+					Err:       "unauthorized",
 					Message:   "Access token is invalid",
 					RequestID: middleware.GetReqID(r.Context()),
 				})

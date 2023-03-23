@@ -129,7 +129,7 @@ func healthCheckHandler(w http.ResponseWriter, _ *http.Request) {
 func notFoundHandler(w http.ResponseWriter, r *http.Request) {
 	defaultResponse(w, http.StatusNotFound, httpencoder.ErrorResponse{
 		Code:      http.StatusNotFound,
-		Error:     http.StatusText(http.StatusNotFound),
+		Err:       http.StatusText(http.StatusNotFound),
 		Message:   fmt.Sprintf("Endpoint %s not found", r.RequestURI),
 		RequestID: middleware.GetReqID(r.Context()),
 	})
@@ -139,7 +139,7 @@ func notFoundHandler(w http.ResponseWriter, r *http.Request) {
 func methodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
 	defaultResponse(w, http.StatusMethodNotAllowed, httpencoder.ErrorResponse{
 		Code:      http.StatusMethodNotAllowed,
-		Error:     http.StatusText(http.StatusMethodNotAllowed),
+		Err:       http.StatusText(http.StatusMethodNotAllowed),
 		Message:   fmt.Sprintf("HTTP method %s is not allowed for this endpoint", r.Method),
 		RequestID: middleware.GetReqID(r.Context()),
 	})
@@ -171,7 +171,7 @@ func testingMdw(next http.Handler) http.Handler {
 			if errCode, err := strconv.Atoi(errCodeStr); err == nil && errCode >= 400 && errCode < 600 {
 				defaultResponse(w, errCode, httpencoder.ErrorResponse{
 					Code:      http.StatusMethodNotAllowed,
-					Error:     http.StatusText(errCode),
+					Err:       http.StatusText(errCode),
 					Message:   fmt.Sprintf("Test error with code %d: %s", errCode, strings.ToLower(http.StatusText(errCode))),
 					RequestID: middleware.GetReqID(r.Context()),
 				})

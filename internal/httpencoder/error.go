@@ -7,11 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/dmitrymomot/oauth2-server/internal/validator"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-kit/kit/auth/jwt"
 	httptransport "github.com/go-kit/kit/transport/http"
+	oauthErrors "github.com/go-oauth2/oauth2/v4/errors"
 )
 
 type (
@@ -23,12 +25,27 @@ type (
 	// Error represents an error response
 	ErrorResponse struct {
 		Code      int         `json:"code"`
-		Error     string      `json:"error"`
+		Err       string      `json:"error"`
 		Message   string      `json:"message,omitempty"`
 		Details   interface{} `json:"details,omitempty"`
 		RequestID string      `json:"request_id,omitempty"`
 	}
 )
+
+// Error implements the error interface
+func (e ErrorResponse) Error() string {
+	return strings.Trim(fmt.Sprintf("%d: %s: %s", e.Code, e.Err, e.Message), ": ")
+}
+
+// NewError creates a new error response
+func NewError(code int, err error, message string, details interface{}) ErrorResponse {
+	return ErrorResponse{
+		Code:    code,
+		Err:     err.Error(),
+		Message: message,
+		Details: details,
+	}
+}
 
 // EncodeError ...
 func EncodeError(l logger, codeAndMessageFrom func(err error) (int, interface{})) httptransport.ErrorEncoder {
@@ -53,21 +70,21 @@ func EncodeError(l logger, codeAndMessageFrom func(err error) (int, interface{})
 		case *validator.ValidationError:
 			resp = ErrorResponse{
 				Code:    http.StatusPreconditionFailed,
-				Error:   msg.(*validator.ValidationError).Err.Error(),
+				Err:     msg.(*validator.ValidationError).Err.Error(),
 				Message: "Validation error. See the details.",
 				Details: msg.(*validator.ValidationError).Values,
 			}
 		case validator.ValidationError:
 			resp = ErrorResponse{
 				Code:    http.StatusPreconditionFailed,
-				Error:   msg.(validator.ValidationError).Err.Error(),
+				Err:     msg.(validator.ValidationError).Err.Error(),
 				Message: "Validation error. See the details.",
 				Details: msg.(validator.ValidationError).Values,
 			}
 		default:
 			resp = ErrorResponse{
 				Code:    code,
-				Error:   http.StatusText(code),
+				Err:     http.StatusText(code),
 				Message: fmt.Sprintf("%v", msg),
 				Details: nil,
 			}
@@ -99,6 +116,21 @@ func CodeAndMessageFrom(err error) (int, interface{}) {
 		errors.Is(err, jwt.ErrTokenMalformed) ||
 		errors.Is(err, jwt.ErrTokenNotActive) ||
 		errors.Is(err, jwt.ErrUnexpectedSigningMethod) {
+		return http.StatusUnauthorized, err.Error()
+	}
+
+	if errors.Is(err, oauthErrors.ErrInvalidRedirectURI) ||
+		errors.Is(err, oauthErrors.ErrMissingCodeVerifier) ||
+		errors.Is(err, oauthErrors.ErrMissingCodeChallenge) ||
+		errors.Is(err, oauthErrors.ErrInvalidCodeChallenge) {
+		return http.StatusBadRequest, err.Error()
+	}
+
+	if errors.Is(err, oauthErrors.ErrInvalidAuthorizeCode) ||
+		errors.Is(err, oauthErrors.ErrInvalidAccessToken) ||
+		errors.Is(err, oauthErrors.ErrInvalidRefreshToken) ||
+		errors.Is(err, oauthErrors.ErrExpiredAccessToken) ||
+		errors.Is(err, oauthErrors.ErrExpiredRefreshToken) {
 		return http.StatusUnauthorized, err.Error()
 	}
 
