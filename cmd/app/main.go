@@ -172,7 +172,7 @@ func main() {
 			user.MakeEndpoints(
 				user.NewService(repo, mailEnqueuer, db),
 				middleware.GokitAuthMiddleware(
-					middleware.NewJwtVerifier(oauthSigningKey),
+					middleware.VerifyJWT(oauthSigningKey),
 				),
 			),
 			logger.WithField("component", "api-user"),
@@ -182,7 +182,7 @@ func main() {
 			client.MakeEndpoints(
 				client.NewService(repo),
 				middleware.GokitAuthMiddleware(
-					middleware.NewJwtVerifier(oauthSigningKey),
+					middleware.VerifyJWT(oauthSigningKey),
 				),
 			),
 			logger.WithField("component", "api-client"),

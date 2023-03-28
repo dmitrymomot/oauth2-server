@@ -1,19 +1,15 @@
 package client
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// Verifier is a function interface for verifying tokens.
-type Verifier func(ctx context.Context, token string, tokenType TokenType) (*TokenInfo, error)
-
 // Introspect returns the token introspection response
-func Introspect(endpoint string) Verifier {
-	return func(ctx context.Context, token string, tokenType TokenType) (*TokenInfo, error) {
+func Introspect(endpoint string) func(string, TokenType) (*TokenInfo, error) {
+	return func(token string, tokenType TokenType) (*TokenInfo, error) {
 		// use the default http client, because token introspection does not require
 		// any authentication headers.
 		resp, err := http.Post(

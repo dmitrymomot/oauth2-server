@@ -10,7 +10,7 @@ import (
 )
 
 // AuthMiddleware is a middleware that checks if the request is authorized.
-func AuthMiddleware(verifier TokenVerifier) func(next http.Handler) http.Handler {
+func AuthMiddleware(verifyFn VerifyTokenFunc) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := getBearerToken(r)
@@ -24,7 +24,7 @@ func AuthMiddleware(verifier TokenVerifier) func(next http.Handler) http.Handler
 				return
 			}
 
-			info, err := verifier.VerifyToken(token, client.TokenTypeAccessToken)
+			info, err := verifyFn(token, client.TokenTypeAccessToken)
 			if err != nil || info == nil || !info.Active {
 				httpencoder.EncodeResponse(r.Context(), w, httpencoder.ErrorResponse{
 					Code:      http.StatusUnauthorized,

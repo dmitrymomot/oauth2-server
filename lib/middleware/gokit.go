@@ -12,7 +12,7 @@ import (
 )
 
 // GokitAuthMiddleware is a middleware for gokit
-func GokitAuthMiddleware(verifier TokenVerifier) endpoint.Middleware {
+func GokitAuthMiddleware(verifyFn VerifyTokenFunc) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 			token, ok := ctx.Value(jwt.JWTContextKey).(string)
@@ -20,7 +20,7 @@ func GokitAuthMiddleware(verifier TokenVerifier) endpoint.Middleware {
 				return nil, httpencoder.NewError(http.StatusUnauthorized, errors.ErrInvalidAccessToken, "", nil)
 			}
 
-			info, err := verifier.VerifyToken(token, client.TokenTypeAccessToken)
+			info, err := verifyFn(token, client.TokenTypeAccessToken)
 			if err != nil || info == nil || !info.Active {
 				return nil, httpencoder.NewError(http.StatusUnauthorized, errors.ErrInvalidAccessToken, "", nil)
 			}
