@@ -37,5 +37,5 @@ func NewClient(opts ...ClientOption) Client {
 
 // Introspect returns the token introspection response
 func (c *client) Introspect(ctx context.Context, token string, tokenType TokenType) (*TokenInfo, error) {
-	return Introspect(ctx, c.introspectEndpoint, token, tokenType)
+	return Introspect(c.introspectEndpoint)(ctx, token, tokenType)
 }
