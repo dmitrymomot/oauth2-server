@@ -16,3 +16,21 @@ func GetTokenInfoFromContext(ctx context.Context) (*client.TokenInfo, bool) {
 	info, ok := ctx.Value(TokenInfoKey).(*client.TokenInfo)
 	return info, ok
 }
+
+// GetClientIDFromContext gets client id from context.
+func GetClientIDFromContext(ctx context.Context) (string, bool) {
+	info, ok := GetTokenInfoFromContext(ctx)
+	if !ok {
+		return "", false
+	}
+	return info.ClientID, info.ClientID != ""
+}
+
+// GetUserIDFromContext gets user id from context.
+func GetUserIDFromContext(ctx context.Context) (string, bool) {
+	info, ok := GetTokenInfoFromContext(ctx)
+	if !ok {
+		return "", false
+	}
+	return info.UserID, info.UserID != ""
+}
