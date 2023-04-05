@@ -105,3 +105,30 @@ func findErrMessage(err error) string {
 	}
 	return http.StatusText(findErrorCode(err))
 }
+
+// CodeAndMessageFrom returns http error code by error type.
+// Returns (0, nil) if error is not found.
+// This function can be used to get error code and message from external packages.
+func CodeAndMessageFrom(err error) (int, interface{}) {
+	var errCode int
+	{
+		if code, ok := ErrorCodes[err]; ok {
+			errCode = code
+		}
+		if code, ok := oauthErrors.StatusCodes[err]; ok {
+			errCode = code
+		}
+	}
+
+	var errMsg interface{}
+	{
+		if msg, ok := ErrorMessages[err]; ok {
+			errMsg = msg
+		}
+		if msg, ok := oauthErrors.Descriptions[err]; ok {
+			errMsg = msg
+		}
+	}
+
+	return errCode, errMsg
+}
