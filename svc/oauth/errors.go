@@ -110,6 +110,11 @@ func findErrMessage(err error) string {
 // Returns (0, nil) if error is not found.
 // This function can be used to get error code and message from external packages.
 func CodeAndMessageFrom(err error) (int, interface{}) {
+	err = findError(err)
+	if err == nil {
+		return 0, nil
+	}
+
 	var errCode int
 	{
 		if code, ok := ErrorCodes[err]; ok {
