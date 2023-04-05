@@ -28,10 +28,10 @@ var ErrorCodes = map[error]int{
 
 	oauthErrors.ErrInvalidRedirectURI:   http.StatusBadRequest,
 	oauthErrors.ErrInvalidAuthorizeCode: http.StatusBadRequest,
-	oauthErrors.ErrInvalidAccessToken:   http.StatusBadRequest,
-	oauthErrors.ErrInvalidRefreshToken:  http.StatusBadRequest,
-	oauthErrors.ErrExpiredAccessToken:   http.StatusBadRequest,
-	oauthErrors.ErrExpiredRefreshToken:  http.StatusBadRequest,
+	oauthErrors.ErrInvalidAccessToken:   http.StatusUnauthorized,
+	oauthErrors.ErrInvalidRefreshToken:  http.StatusUnauthorized,
+	oauthErrors.ErrExpiredAccessToken:   http.StatusUnauthorized,
+	oauthErrors.ErrExpiredRefreshToken:  http.StatusUnauthorized,
 	oauthErrors.ErrMissingCodeVerifier:  http.StatusBadRequest,
 	oauthErrors.ErrMissingCodeChallenge: http.StatusBadRequest,
 	oauthErrors.ErrInvalidCodeChallenge: http.StatusBadRequest,
@@ -42,7 +42,7 @@ var ErrorMessages = map[error]string{
 	ErrInvalidRequest:     "Invalid request",
 	ErrInvalidCredentials: "Invalid credentials",
 	ErrMethodNotAllowed:   "Method not allowed",
-	ErrInvalidAccessToken: "Invalid access token",
+	ErrInvalidAccessToken: "Missed or invalid access token",
 	ErrUnauthorized:       "Unauthorized",
 
 	oauthErrors.ErrInvalidRedirectURI:   "Invalid redirect uri",
