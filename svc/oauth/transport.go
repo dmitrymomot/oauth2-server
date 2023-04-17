@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -87,6 +88,10 @@ func httpAuthorizeHandler(s oauth2Server, errEncoder httptransport.ErrorEncoder,
 		if err := s.HandleAuthorizeRequest(w, r); err != nil {
 			errEncoder(r.Context(), err, w)
 			return
+		}
+
+		if err := session.Logout(r, w); err != nil {
+			log.Printf("failed to logout: %v", err)
 		}
 	}
 }

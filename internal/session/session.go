@@ -150,3 +150,18 @@ func IsLoggedIn(r *http.Request, w http.ResponseWriter) bool {
 	_, ok := GetLoggedInUserID(r, w)
 	return ok
 }
+
+// Logout logs the user out.
+func Logout(r *http.Request, w http.ResponseWriter) error {
+	store, err := session.Start(r.Context(), w, r)
+	if err != nil {
+		return fmt.Errorf("session start: %w", err)
+	}
+
+	store.Delete(LoggedInUserIDKey)
+	if err := store.Save(); err != nil {
+		return fmt.Errorf("session save: %w", err)
+	}
+
+	return nil
+}
