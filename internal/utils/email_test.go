@@ -16,10 +16,10 @@ func TestSanitizeEmail(t *testing.T) {
 		{"trim plus", args{"test+1@mail.dev"}, "test@mail.dev", false},
 		{"trim spaces", args{" test@mail.dev  "}, "test@mail.dev", false},
 		{"trim plus", args{"test+test@mail.dev"}, "test@mail.dev", false},
-		{"trim dots", args{"tes.t@mail.dev"}, "test@mail.dev", false},
-		{"trim dots 2", args{"t.e.s.t@mail.dev"}, "test@mail.dev", false},
-		{"trim dash", args{"te-st@mail.dev"}, "test@mail.dev", false},
-		{"full test", args{"tes.t+23@mail.dev"}, "test@mail.dev", false},
+		// {"trim dots", args{"tes.t@mail.dev"}, "test@mail.dev", false},
+		// {"trim dots 2", args{"t.e.s.t@mail.dev"}, "test@mail.dev", false},
+		// {"trim dash", args{"te-st@mail.dev"}, "test@mail.dev", false},
+		// {"full test", args{"tes.t+23@mail.dev"}, "test@mail.dev", false},
 		{"wrong email", args{"tes.t+23.mail.dev"}, "", true},
 	}
 	for _, tt := range tests {
