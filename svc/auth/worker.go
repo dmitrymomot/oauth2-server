@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/hibiken/asynq"
 )
@@ -37,8 +38,16 @@ func NewWorker(repo workerRepository, log logger) *Worker {
 
 // Schedule schedules tasks for the worker.
 func (w *Worker) Schedule(s *asynq.Scheduler) {
-	s.Register("@every 1h", asynq.NewTask(CleanUpExpiredVerificationRequestsTask, nil))
-	s.Register("@every 1h", asynq.NewTask(CleanUpExpiredTokensTask, nil))
+	s.Register("@every 1h", asynq.NewTask(CleanUpExpiredVerificationRequestsTask, nil),
+		asynq.Queue("auth-exp-ver-reqs"),
+		asynq.Unique(time.Hour),
+		asynq.MaxRetry(0),
+	)
+	s.Register("@every 1h", asynq.NewTask(CleanUpExpiredTokensTask, nil),
+		asynq.Queue("auth-exp-tokens"),
+		asynq.Unique(time.Hour),
+		asynq.MaxRetry(0),
+	)
 }
 
 // Register registers task handlers for email delivery.
