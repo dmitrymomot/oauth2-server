@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/hibiken/asynq"
 )
@@ -18,17 +17,22 @@ type (
 	// Worker is a task handler for email delivery.
 	Worker struct {
 		repo workerRepository
+		log  logger
 	}
 
 	workerRepository interface {
 		CleanUpExpiredUserVerifications(ctx context.Context) error
 		DeleteExpiredTokens(ctx context.Context) error
 	}
+
+	logger interface {
+		Errorf(format string, args ...interface{})
+	}
 )
 
 // NewWorker creates a new email task handler.
-func NewWorker(repo workerRepository) *Worker {
-	return &Worker{repo: repo}
+func NewWorker(repo workerRepository, log logger) *Worker {
+	return &Worker{repo: repo, log: log}
 }
 
 // Schedule schedules tasks for the worker.
@@ -47,7 +51,7 @@ func (w *Worker) Register(mux *asynq.ServeMux) {
 func (w *Worker) CleanUpExpiredVerificationRequests(ctx context.Context, t *asynq.Task) error {
 	if err := w.repo.CleanUpExpiredUserVerifications(ctx); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("failed to clean up expired verification requests: %w", err)
+			w.log.Errorf("failed to clean up expired verification requests: %w", err)
 		}
 	}
 
@@ -58,7 +62,7 @@ func (w *Worker) CleanUpExpiredVerificationRequests(ctx context.Context, t *asyn
 func (w *Worker) CleanUpExpiredTokens(ctx context.Context, t *asynq.Task) error {
 	if err := w.repo.DeleteExpiredTokens(ctx); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("failed to clean up expired tokens: %w", err)
+			w.log.Errorf("failed to clean up expired tokens: %w", err)
 		}
 	}
 

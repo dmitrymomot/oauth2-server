@@ -124,7 +124,7 @@ func main() {
 		eg.Go(runScheduler(
 			redisConnOpt,
 			logger.WithField("component", "scheduler"),
-			auth.NewWorker(repo),
+			auth.NewWorker(repo, logger.WithField("component", "auth-worker")),
 		))
 	} else {
 		logger.Warn("Redis connection string is empty, skipping asynq client")

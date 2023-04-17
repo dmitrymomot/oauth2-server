@@ -159,12 +159,12 @@ func Logout(r *http.Request, w http.ResponseWriter) error {
 		return fmt.Errorf("session start: %w", err)
 	}
 
-	if err := store.Flush(); err != nil {
-		return fmt.Errorf("session save: %w", err)
-	}
-
 	if err := session.Destroy(r.Context(), w, r); err != nil {
 		return fmt.Errorf("session destroy: %w", err)
+	}
+
+	if err := store.Flush(); err != nil {
+		return fmt.Errorf("session flush: %w", err)
 	}
 
 	log.Println("logged out")
