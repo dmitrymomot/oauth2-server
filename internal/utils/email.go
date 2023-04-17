@@ -30,15 +30,15 @@ func SanitizeEmail(s string) (string, error) {
 		username = p[0]
 	}
 
-	if strings.Contains(username, ".") {
-		p := strings.Split(username, ".")
-		username = strings.Join(p, "")
-	}
+	// if strings.Contains(username, ".") {
+	// 	p := strings.Split(username, ".")
+	// 	username = strings.Join(p, "")
+	// }
 
-	if strings.Contains(username, "-") {
-		p := strings.Split(username, "-")
-		username = strings.Join(p, "")
-	}
+	// if strings.Contains(username, "-") {
+	// 	p := strings.Split(username, "-")
+	// 	username = strings.Join(p, "")
+	// }
 
 	result := fmt.Sprintf("%s@%s", username, domain)
 

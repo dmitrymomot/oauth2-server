@@ -95,6 +95,7 @@ func (s *service) Login(ctx context.Context, email, password string) (uuid.UUID,
 
 // Register creates a new user and returns a user ID.
 func (s *service) Register(ctx context.Context, email, password string) (uuid.UUID, error) {
+	email = strings.TrimSpace(strings.ToLower(email))
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -119,7 +120,7 @@ func (s *service) Register(ctx context.Context, email, password string) (uuid.UU
 	repo := s.repo.WithTx(tx)
 
 	user, err = repo.CreateUser(ctx, repository.CreateUserParams{
-		Email:    strings.TrimSpace(strings.ToLower(email)),
+		Email:    email,
 		Password: passwordHash,
 	})
 	if err != nil {
@@ -155,6 +156,7 @@ func (s *service) Register(ctx context.Context, email, password string) (uuid.UU
 
 // PasswordRecovery sends a password recovery email.
 func (s *service) PasswordRecovery(ctx context.Context, email string) error {
+	email = strings.TrimSpace(strings.ToLower(email))
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -209,6 +211,7 @@ func (s *service) PasswordRecovery(ctx context.Context, email string) error {
 
 // PasswordReset resets a user password.
 func (s *service) PasswordReset(ctx context.Context, email, otp, password string) error {
+	email = strings.TrimSpace(strings.ToLower(email))
 	uv, err := s.repo.GetUserVerificationByEmail(ctx, repository.GetUserVerificationByEmailParams{
 		RequestType: repository.UserVerificationRequestTypePasswordReset,
 		Email:       email,
@@ -279,6 +282,7 @@ func (s *service) PasswordReset(ctx context.Context, email, otp, password string
 
 // Verify user email with otp code
 func (s *service) VerifyEmail(ctx context.Context, email, otp string) error {
+	email = strings.TrimSpace(strings.ToLower(email))
 	uv, err := s.repo.GetUserVerificationByEmail(ctx, repository.GetUserVerificationByEmailParams{
 		RequestType: repository.UserVerificationRequestTypeEmailVerification,
 		Email:       email,
@@ -335,6 +339,7 @@ func (s *service) VerifyEmail(ctx context.Context, email, otp string) error {
 
 // Resend verification email
 func (s *service) ResendVerificationEmail(ctx context.Context, email string) error {
+	email = strings.TrimSpace(strings.ToLower(email))
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -383,6 +388,7 @@ func (s *service) ResendVerificationEmail(ctx context.Context, email string) err
 
 // DestroyProfileRequest sends a destroy profile email.
 func (s *service) DestroyProfileRequest(ctx context.Context, email string) error {
+	email = strings.TrimSpace(strings.ToLower(email))
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -428,6 +434,7 @@ func (s *service) DestroyProfileRequest(ctx context.Context, email string) error
 
 // DestroyProfile destroys a user profile.
 func (s *service) DestroyProfile(ctx context.Context, email, otp string) error {
+	email = strings.TrimSpace(strings.ToLower(email))
 	uv, err := s.repo.GetUserVerificationByEmail(ctx, repository.GetUserVerificationByEmailParams{
 		RequestType: repository.UserVerificationRequestTypeDeleteAccount,
 		Email:       email,
