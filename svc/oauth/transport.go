@@ -93,6 +93,8 @@ func httpAuthorizeHandler(s oauth2Server, errEncoder httptransport.ErrorEncoder,
 		if err := session.Logout(r, w); err != nil {
 			log.Printf("failed to logout: %v", err)
 		}
+
+		log.Println("user redirected to", r.FormValue("redirect_uri"))
 	}
 }
 

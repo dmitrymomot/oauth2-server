@@ -2,6 +2,7 @@ package session
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -159,9 +160,13 @@ func Logout(r *http.Request, w http.ResponseWriter) error {
 	}
 
 	store.Delete(LoggedInUserIDKey)
+	store.Delete(RedirectDataKey)
+	store.Delete(ReturnURIKey)
 	if err := store.Save(); err != nil {
 		return fmt.Errorf("session save: %w", err)
 	}
+
+	log.Println("logged out")
 
 	return nil
 }
