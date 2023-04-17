@@ -159,11 +159,12 @@ func Logout(r *http.Request, w http.ResponseWriter) error {
 		return fmt.Errorf("session start: %w", err)
 	}
 
-	store.Delete(LoggedInUserIDKey)
-	store.Delete(RedirectDataKey)
-	store.Delete(ReturnURIKey)
-	if err := store.Save(); err != nil {
+	if err := store.Flush(); err != nil {
 		return fmt.Errorf("session save: %w", err)
+	}
+
+	if err := session.Destroy(r.Context(), w, r); err != nil {
+		return fmt.Errorf("session destroy: %w", err)
 	}
 
 	log.Println("logged out")
