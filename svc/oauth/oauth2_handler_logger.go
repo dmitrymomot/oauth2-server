@@ -105,7 +105,7 @@ func (h *handlerLogger) UserAuthorizationHandler(w http.ResponseWriter, r *http.
 // PasswordAuthorizationHandler get user id from username and password
 // and logs the request and response.
 func (h *handlerLogger) PasswordAuthorizationHandler(ctx context.Context, clientID, username, password string) (userID string, err error) {
-	h.log.Debugf("PasswordAuthorizationHandler: clientID=%s, username=%s, password=%s", clientID, username, password)
+	h.log.Debugf("PasswordAuthorizationHandler: clientID=%s, username=%s", clientID, username)
 
 	userID, err = h.Handler.PasswordAuthorizationHandler(ctx, clientID, username, password)
 	if err != nil {
